@@ -4,3 +4,6 @@
 #include <RcppEigen.h>
 
 // [[Rcpp::depends(RcppEigen)]]
+#include "extractParams.h"
+#include "latent.h"
+#include "irtMod.h"
