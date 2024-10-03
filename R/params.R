@@ -1,5 +1,3 @@
-
-
 #' IRT parameters to matrix
 #'
 #' Reparametrise IRT parameters and rearrange them in a matrix
@@ -30,7 +28,7 @@ irtVec2Mat <- function(THETA_IRT, N_GRADES, N_EXAMS, LABS_EXAMS=NULL, LABS_GRADE
   if(is.null(LABS_EXAMS)) LABS_EXAMS <- paste0('exam',1:N_EXAMS)
   rownames(out) <- LABS_EXAMS
   if(is.null(LABS_GRADES)) LABS_GRADES <- paste0('grade',1:N_GRADES)
-  colnames(out) <- c(LABS_GRADES, 'slope', 'time_loc', 'time_sc')
+  colnames(out) <- c(LABS_GRADES, 'slope', 'time_loc', 'time_invsd')
 
   return(out)
 }
@@ -51,4 +49,50 @@ irtMat2Vec <- function(MAT){
   out[, n_grades+3] <- log(out[, n_grades+3])
 
   return(as.vector(t(out)))
+}
+
+#' Unconstrained parameter vector to list
+#'
+#' Reparametrise unconstrained parameters and rearrange them into a list
+#'
+#' @param THETA Parameter vector.
+#' @param N_GRADES number of grades modeled.
+#' @param N_EXAMS number of exams.
+#' @param LABS_EXAMS optional label for exams
+#' @param LABS_GRADES optional label for grades#'
+#'
+#' @export
+parVec2List <- function(THETA, N_GRADES, N_EXAMS, LABS_EXAMS=NULL, LABS_GRADES=NULL){
+  dim_irt <- N_EXAMS * (N_GRADES+3)
+
+  out <- list()
+
+  # IRT parameters
+  out[["irt"]] <- irtVec2Mat(THETA_IRT = THETA[1:dim_irt],
+                           N_GRADES = N_GRADES,
+                           N_EXAMS = N_EXAMS,
+                           LABS_EXAMS = LABS_EXAMS,
+                           LABS_GRADES = LABS_GRADES)
+
+  # Latent parameters
+  L <- matrix(c(1,THETA[dim_irt+1], 0, THETA[dim_irt+2]),2,2)
+  out[["lat_var"]] <- L %*% t(L)
+
+  return(out)
+}
+
+#' Parameters list to unconstrained vector
+#'
+#' @param LIST List of parameters as returned by [parVec2List]
+#'
+#' @export
+parList2Vec <- function(LIST){
+
+  theta_irt <- irtMat2Vec(LIST[["irt"]])
+  L <- t(chol(LIST[["lat_var"]]))
+  theta_lat <- c(L[2,1], L[2,2])
+
+  theta <- c(theta_irt, theta_lat)
+
+  return(theta)
 }

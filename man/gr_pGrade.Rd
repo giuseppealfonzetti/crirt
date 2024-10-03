@@ -18,8 +18,6 @@ gr_pGrade(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY)
 \item{N_EXAMS}{Number of exams.}
 
 \item{ABILITY}{Ability value.}
-
-\item{LOGFLAG}{Set TRUE to return log value.}
 }
 \value{
 It returns the gradient of the probability of obtaining the grade \code{GRADE} on exam \code{EXAM}.

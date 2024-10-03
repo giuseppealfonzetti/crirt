@@ -6,4 +6,4 @@
 .quarto
 .gitignore
 test-Michela.R
-testdata/
+test_assets/

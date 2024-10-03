@@ -11,6 +11,48 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// examLik
+double examLik(const unsigned int EXAM, const unsigned int GRADE, const double DAY, const double MAX_DAY, const bool OBSFLAG, Eigen::VectorXd& THETA_IRT, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double ABILITY, const double SPEED, const bool LOGFLAG);
+RcppExport SEXP _crirt_examLik(SEXP EXAMSEXP, SEXP GRADESEXP, SEXP DAYSEXP, SEXP MAX_DAYSEXP, SEXP OBSFLAGSEXP, SEXP THETA_IRTSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP ABILITYSEXP, SEXP SPEEDSEXP, SEXP LOGFLAGSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const unsigned int >::type EXAM(EXAMSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type GRADE(GRADESEXP);
+    Rcpp::traits::input_parameter< const double >::type DAY(DAYSEXP);
+    Rcpp::traits::input_parameter< const double >::type MAX_DAY(MAX_DAYSEXP);
+    Rcpp::traits::input_parameter< const bool >::type OBSFLAG(OBSFLAGSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type THETA_IRT(THETA_IRTSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
+    Rcpp::traits::input_parameter< const double >::type SPEED(SPEEDSEXP);
+    Rcpp::traits::input_parameter< const bool >::type LOGFLAG(LOGFLAGSEXP);
+    rcpp_result_gen = Rcpp::wrap(examLik(EXAM, GRADE, DAY, MAX_DAY, OBSFLAG, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, SPEED, LOGFLAG));
+    return rcpp_result_gen;
+END_RCPP
+}
+// grl_examLik
+Eigen::VectorXd grl_examLik(const unsigned int EXAM, const unsigned int GRADE, const double DAY, const double MAX_DAY, const bool OBSFLAG, Eigen::VectorXd& THETA_IRT, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double ABILITY, const double SPEED, const bool ROTATED);
+RcppExport SEXP _crirt_grl_examLik(SEXP EXAMSEXP, SEXP GRADESEXP, SEXP DAYSEXP, SEXP MAX_DAYSEXP, SEXP OBSFLAGSEXP, SEXP THETA_IRTSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP ABILITYSEXP, SEXP SPEEDSEXP, SEXP ROTATEDSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const unsigned int >::type EXAM(EXAMSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type GRADE(GRADESEXP);
+    Rcpp::traits::input_parameter< const double >::type DAY(DAYSEXP);
+    Rcpp::traits::input_parameter< const double >::type MAX_DAY(MAX_DAYSEXP);
+    Rcpp::traits::input_parameter< const bool >::type OBSFLAG(OBSFLAGSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type THETA_IRT(THETA_IRTSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
+    Rcpp::traits::input_parameter< const double >::type SPEED(SPEEDSEXP);
+    Rcpp::traits::input_parameter< const bool >::type ROTATED(ROTATEDSEXP);
+    rcpp_result_gen = Rcpp::wrap(grl_examLik(EXAM, GRADE, DAY, MAX_DAY, OBSFLAG, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, SPEED, ROTATED));
+    return rcpp_result_gen;
+END_RCPP
+}
 // extract_params_idx_irt
 std::vector<unsigned int> extract_params_idx_irt(Eigen::VectorXd THETA_IRT, const unsigned int N_GRADES, const unsigned int N_EXAMS, const unsigned int OPTION, const unsigned int EXAM);
 RcppExport SEXP _crirt_extract_params_idx_irt(SEXP THETA_IRTSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP OPTIONSEXP, SEXP EXAMSEXP) {
@@ -107,6 +149,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// conditional_igrtcm
+Rcpp::List conditional_igrtcm(Eigen::VectorXd& THETA, Eigen::VectorXd& EXAMS_GRADES, Eigen::VectorXd& EXAMS_DAYS, Eigen::VectorXd& EXAMS_SET, Eigen::VectorXd& EXAMS_OBSFLAG, const unsigned int MAX_DAY, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double ABILITY, double SPEED, const bool ROTATE, const bool GRFLAG);
+RcppExport SEXP _crirt_conditional_igrtcm(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP MAX_DAYSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP ABILITYSEXP, SEXP SPEEDSEXP, SEXP ROTATESEXP, SEXP GRFLAGSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_GRADES(EXAMS_GRADESSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_DAYS(EXAMS_DAYSSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_SET(EXAMS_SETSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_OBSFLAG(EXAMS_OBSFLAGSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type MAX_DAY(MAX_DAYSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
+    Rcpp::traits::input_parameter< double >::type SPEED(SPEEDSEXP);
+    Rcpp::traits::input_parameter< const bool >::type ROTATE(ROTATESEXP);
+    Rcpp::traits::input_parameter< const bool >::type GRFLAG(GRFLAGSEXP);
+    rcpp_result_gen = Rcpp::wrap(conditional_igrtcm(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, ABILITY, SPEED, ROTATE, GRFLAG));
+    return rcpp_result_gen;
+END_RCPP
+}
 // internal_lat
 Rcpp::List internal_lat(const double ABILITY, const double SPEED, Eigen::VectorXd PARS, const bool GRFLAG);
 RcppExport SEXP _crirt_internal_lat(SEXP ABILITYSEXP, SEXP SPEEDSEXP, SEXP PARSSEXP, SEXP GRFLAGSEXP) {
@@ -118,6 +182,28 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type PARS(PARSSEXP);
     Rcpp::traits::input_parameter< const bool >::type GRFLAG(GRFLAGSEXP);
     rcpp_result_gen = Rcpp::wrap(internal_lat(ABILITY, SPEED, PARS, GRFLAG));
+    return rcpp_result_gen;
+END_RCPP
+}
+// GRTCM_GH
+Rcpp::List GRTCM_GH(Eigen::VectorXd& THETA, Eigen::MatrixXd& EXAMS_GRADES, Eigen::MatrixXd& EXAMS_DAYS, Eigen::MatrixXd& EXAMS_SET, Eigen::MatrixXd& EXAMS_OBSFLAG, Eigen::VectorXd& MAX_DAY, Eigen::MatrixXd GRID, Eigen::VectorXd WEIGHTS, const unsigned int N_GRADES, const unsigned int N_EXAMS, const bool GRFLAG, const bool ROTGRID);
+RcppExport SEXP _crirt_GRTCM_GH(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP MAX_DAYSEXP, SEXP GRIDSEXP, SEXP WEIGHTSSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP GRFLAGSEXP, SEXP ROTGRIDSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd& >::type EXAMS_GRADES(EXAMS_GRADESSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd& >::type EXAMS_DAYS(EXAMS_DAYSSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd& >::type EXAMS_SET(EXAMS_SETSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd& >::type EXAMS_OBSFLAG(EXAMS_OBSFLAGSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type MAX_DAY(MAX_DAYSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type GRID(GRIDSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type WEIGHTS(WEIGHTSSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const bool >::type GRFLAG(GRFLAGSEXP);
+    Rcpp::traits::input_parameter< const bool >::type ROTGRID(ROTGRIDSEXP);
+    rcpp_result_gen = Rcpp::wrap(GRTCM_GH(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, GRID, WEIGHTS, N_GRADES, N_EXAMS, GRFLAG, ROTGRID));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -133,16 +219,59 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// pTimeExam
+double pTimeExam(const unsigned int EXAM, const double DAY, Eigen::VectorXd& THETA, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double SPEED, const bool CDFFLAG, const bool LOGFLAG);
+RcppExport SEXP _crirt_pTimeExam(SEXP EXAMSEXP, SEXP DAYSEXP, SEXP THETASEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP SPEEDSEXP, SEXP CDFFLAGSEXP, SEXP LOGFLAGSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const unsigned int >::type EXAM(EXAMSEXP);
+    Rcpp::traits::input_parameter< const double >::type DAY(DAYSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const double >::type SPEED(SPEEDSEXP);
+    Rcpp::traits::input_parameter< const bool >::type CDFFLAG(CDFFLAGSEXP);
+    Rcpp::traits::input_parameter< const bool >::type LOGFLAG(LOGFLAGSEXP);
+    rcpp_result_gen = Rcpp::wrap(pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, CDFFLAG, LOGFLAG));
+    return rcpp_result_gen;
+END_RCPP
+}
+// gr_pTimeExam
+Eigen::VectorXd gr_pTimeExam(const unsigned int EXAM, const double DAY, Eigen::VectorXd& THETA, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double SPEED, const double ABILITY, const bool CDFFLAG, const bool ROTATED);
+RcppExport SEXP _crirt_gr_pTimeExam(SEXP EXAMSEXP, SEXP DAYSEXP, SEXP THETASEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP SPEEDSEXP, SEXP ABILITYSEXP, SEXP CDFFLAGSEXP, SEXP ROTATEDSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const unsigned int >::type EXAM(EXAMSEXP);
+    Rcpp::traits::input_parameter< const double >::type DAY(DAYSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const double >::type SPEED(SPEEDSEXP);
+    Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
+    Rcpp::traits::input_parameter< const bool >::type CDFFLAG(CDFFLAGSEXP);
+    Rcpp::traits::input_parameter< const bool >::type ROTATED(ROTATEDSEXP);
+    rcpp_result_gen = Rcpp::wrap(gr_pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_crirt_examLik", (DL_FUNC) &_crirt_examLik, 11},
+    {"_crirt_grl_examLik", (DL_FUNC) &_crirt_grl_examLik, 11},
     {"_crirt_extract_params_idx_irt", (DL_FUNC) &_crirt_extract_params_idx_irt, 5},
     {"_crirt_extract_params_irt", (DL_FUNC) &_crirt_extract_params_irt, 5},
     {"_crirt_pGreaterGrades", (DL_FUNC) &_crirt_pGreaterGrades, 7},
     {"_crirt_gr_pGreaterGrades", (DL_FUNC) &_crirt_gr_pGreaterGrades, 6},
     {"_crirt_pGrade", (DL_FUNC) &_crirt_pGrade, 7},
     {"_crirt_gr_pGrade", (DL_FUNC) &_crirt_gr_pGrade, 6},
+    {"_crirt_conditional_igrtcm", (DL_FUNC) &_crirt_conditional_igrtcm, 12},
     {"_crirt_internal_lat", (DL_FUNC) &_crirt_internal_lat, 4},
+    {"_crirt_GRTCM_GH", (DL_FUNC) &_crirt_GRTCM_GH, 12},
     {"_crirt_reparThr", (DL_FUNC) &_crirt_reparThr, 2},
+    {"_crirt_pTimeExam", (DL_FUNC) &_crirt_pTimeExam, 8},
+    {"_crirt_gr_pTimeExam", (DL_FUNC) &_crirt_gr_pTimeExam, 9},
     {NULL, NULL, 0}
 };
 

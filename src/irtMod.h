@@ -1,171 +1,174 @@
 #ifndef irtMod_H
 #define irtMod_H
+#include "grades.h"
+#include "times.h"
+#include "exams.h"
 #include "extractParams.h"
 #include "latent.h"
 
-//' Evaluate the probability of grades greater or equal than the reference one
-//'
-//' @param GRADE Grade used as reference. Integers from 1 to N_GRADES.
-//' @param EXAM Exam of interest. Integers from 0 to N_EXAMS -1.
-//' @param THETA_IRT Portion of the parameter vector related to the IRT model
-//' @param N_GRADES Number of grades modelled.
-//' @param N_EXAMS Number of exams.
-//' @param ABILITY Ability value.
-//' @param LOGFLAG Set TRUE to return log value.
-//'
-//' @returns It returns the probability of obtaining grades higher than `GRADE` on exam `EXAM`.
-//'
-//' @export
-// [[Rcpp::export]]
-double pGreaterGrades(
-  const unsigned int GRADE,
-  const unsigned int EXAM,
-  Eigen::VectorXd& THETA_IRT,
-  const unsigned int N_GRADES,
-  const unsigned int N_EXAMS,
-  const double ABILITY,
-  const bool LOGFLAG = false
-){
-  if(EXAM > N_EXAMS) Rcpp::stop("`EXAM` larger than `N_EXAMS`");
-  if(GRADE > N_GRADES) Rcpp::stop("`GRADE` larger than `N_GRADES`");
 
-  const double intercept = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 2, EXAM)(GRADE-1);
-  const double coeff = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 1, EXAM)(0);
 
-  double out = -log1pexp(intercept - coeff*ABILITY);
-  if(!LOGFLAG) out = exp(out);
+class GRTC_MOD
+{
+private:
+  Eigen::VectorXd _theta;
+  Eigen::VectorXd _exams_grades;
+  Eigen::VectorXd _exams_days;
+  Eigen::VectorXd _exams_set;
+  Eigen::VectorXd _exams_obsflag;
+  unsigned int _max_day;
+  unsigned int _n_grades;
+  unsigned int _n_exams;
+  unsigned int _dim_irt;
+  bool _rotated;
 
-  return(out);
+public:
+  GRTC_MOD(Eigen::VectorXd THETA,
+          Eigen::VectorXd EXAMS_GRADES,
+          Eigen::VectorXd EXAMS_DAYS,
+          Eigen::VectorXd EXAMS_SET,
+          Eigen::VectorXd EXAMS_OBSFLAG,
+          const unsigned int MAX_DAY,
+          const unsigned int N_GRADES,
+          const unsigned int N_EXAMS,
+          const bool ROTATED):
+  _theta(THETA),
+  _exams_grades(EXAMS_GRADES),
+  _exams_days(EXAMS_DAYS),
+  _exams_set(EXAMS_SET),
+  _exams_obsflag(EXAMS_OBSFLAG),
+  _max_day(MAX_DAY),
+  _n_grades(N_GRADES),
+  _n_exams(N_EXAMS),
+  _rotated(ROTATED)
+  {
+    _dim_irt = 3*N_EXAMS + N_EXAMS*N_GRADES;
+  }
+
+  double ll(const double ABILITY, const double SPEED);
+
+  Eigen::VectorXd grll(const double ABILITY, const double SPEED);
+};
+
+double GRTC_MOD::ll(const double ABILITY, const double SPEED) {
+
+  double out = 0;
+
+  for(unsigned int exam = 0; exam < _n_exams; exam++){
+
+    if(_exams_set[exam]){
+      out += examLik(exam,
+                     _exams_grades(exam),
+                     _exams_days(exam),
+                     _max_day,
+                     _exams_obsflag(exam),
+                     _theta,
+                     _n_grades,
+                     _n_exams,
+                     ABILITY, SPEED, 1);
+
+    }
+  }
+
+  return out;
+}
+Eigen::VectorXd GRTC_MOD::grll(const double ABILITY, const double SPEED){
+
+  Eigen::VectorXd gr = Eigen::VectorXd::Zero(_theta.size());
+  Eigen::VectorXd gr_irt = Eigen::VectorXd::Zero(_dim_irt+2);
+
+  for(unsigned int exam = 0; exam < _n_exams; exam++){
+
+    if(_exams_set[exam]){
+      gr_irt += grl_examLik(exam,
+                            _exams_grades(exam),
+                             _exams_days(exam),
+                             _max_day,
+                             _exams_obsflag(exam),
+                             _theta,
+                             _n_grades,
+                             _n_exams,
+                             ABILITY, SPEED,
+                             _rotated);
+    }
+  }
+
+  gr.segment(0, _dim_irt+2) = gr_irt;
+  return gr;
 }
 
-
-//' Evaluate the gradient of the probability of grades greater or equal than the reference one
+//' Log-likelihood and gradient of the conditional GRTC Model on one observation
 //'
-//' @param GRADE Grade used as reference. Integers from 1 to N_GRADES.
-//' @param EXAM Exam of interest. Integers from 0 to N_EXAMS -1.
-//' @param THETA_IRT Portion of the parameter vector related to the IRT model
-//' @param N_GRADES Number of grades modelled.
-//' @param N_EXAMS Number of exams.
-//' @param ABILITY Ability value.
-//' @param LOGFLAG Set TRUE to return log value.
-//'
-//' @returns It returns the gradient of the probability of obtaining grades higher than `GRADE` on exam `EXAM`.
+//' @param THETA Parameter vector
+//' @param EXAMS_GRADES Vector of exam grades
+//' @param EXAMS_DAYS Vector of Eexam days
+//' @param EXAMS_SET Vector of binary values. 1 to include an exam in the study-plan, 0 otherwise
+//' @param EXAMS_OBSFLAG Vector of binary values. 1 if the exam is observed, 0 otherwise
+//' @param MAX_DAY Maximum day of observation
+//' @param N_GRADES Number of possible grades modelled
+//' @param N_EXAMS Number of possible exams modelled
+//' @param ABILITY Ability latent parameter
+//' @param SPEED Speed latent parameter
+//' @param GRFLAG Set to true to return the gradient along the log-likelihood
 //'
 //' @export
 // [[Rcpp::export]]
-Eigen::VectorXd gr_pGreaterGrades(
-     const unsigned int GRADE,
-     const unsigned int EXAM,
-     Eigen::VectorXd& THETA_IRT,
-     const unsigned int N_GRADES,
-     const unsigned int N_EXAMS,
-     const double ABILITY
-){
-  if(EXAM > N_EXAMS) Rcpp::stop("`EXAM` larger than `N_EXAMS`");
-  if(GRADE > N_GRADES) Rcpp::stop("`GRADE` larger than `N_GRADES`");
-  Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA_IRT.size());
-
-  const double intercept = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 2, EXAM)(GRADE-1);
-  const double coeff = extract_params_irt(THETA_IRT, N_GRADES, N_EXAMS, 1, EXAM)(0);
-
-  double pr = exp(-log1pexp(intercept - coeff*ABILITY));
-  std::vector<unsigned int> idx_i = extract_params_idx_irt(THETA_IRT, N_GRADES, N_EXAMS, 2, EXAM);
-  std::vector<unsigned int> idx_c = extract_params_idx_irt(THETA_IRT, N_GRADES, N_EXAMS, 1, EXAM);
-
-  double val_i = pr - pow(pr,2);
-  gr(idx_c[0]) = val_i*ABILITY;
-
-  Eigen::VectorXd tmpi = THETA_IRT.segment(idx_i[0], idx_i[1]).array().exp();
-  tmpi(0) = 1;
-  tmpi.tail(N_GRADES-GRADE) = Eigen::VectorXd::Zero(N_GRADES-GRADE);
-
-  gr.segment(idx_i[0], idx_i[1]) = -tmpi*val_i;
-
-  return(gr);
- }
-
-//' Evaluate the probability of getting a specific grade
-//'
-//' @param GRADE Grade used as reference
-//' @param EXAM Exam of interest. Integers from 0 to N_EXAMS -1.
-//' @param THETA_IRT Portion of the parameter vector related to the IRT model
-//' @param N_GRADES Number of grades modelled.
-//' @param N_EXAMS Number of exams.
-//' @param ABILITY Ability value.
-//' @param LOGFLAG Set TRUE to return log value.
-//'
-//' @returns It returns the probability of obtaining the grade `GRADE` on exam `EXAM`.
-//' @export
-// [[Rcpp::export]]
-double pGrade(
-    const unsigned int GRADE,
-    const unsigned int EXAM,
-    Eigen::VectorXd& THETA_IRT,
+Rcpp::List conditional_igrtcm(
+    Eigen::VectorXd& THETA,
+    Eigen::VectorXd& EXAMS_GRADES,
+    Eigen::VectorXd& EXAMS_DAYS,
+    Eigen::VectorXd& EXAMS_SET,
+    Eigen::VectorXd& EXAMS_OBSFLAG,
+    const unsigned int MAX_DAY,
     const unsigned int N_GRADES,
     const unsigned int N_EXAMS,
     const double ABILITY,
-    const bool LOGFLAG = false
+    double SPEED,
+    const bool ROTATE,
+    const bool GRFLAG = true
 ){
-  double out;
 
-  if(LOGFLAG){
-    if(GRADE==N_GRADES){
-      out = pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
-    }else if(GRADE==0){
-      out = log1mexp(-pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true));
-    }else if(GRADE<N_GRADES & GRADE >0){
-      out = R::logspace_sub(pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true), pGreaterGrades(GRADE+1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true));
-    }
+  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
 
-    // avoid log(0)
-    out = std::max(-10000.0, out);
-  }else{
-    if(GRADE==N_GRADES){
-      out = pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-    }else if(GRADE==0){
-      out = 1 - pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-    }else if(GRADE<N_GRADES & GRADE >0){
-      out = pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY)-pGreaterGrades(GRADE+1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-    }
+  if(ROTATE){
+    SPEED = THETA(dim_irt)*ABILITY + THETA(dim_irt+1)*SPEED;
   }
 
+  GRTC_MOD irt_mod(THETA,
+                   EXAMS_GRADES,
+                   EXAMS_DAYS,
+                   EXAMS_SET,
+                   EXAMS_OBSFLAG,
+                   MAX_DAY,
+                   N_GRADES,
+                   N_EXAMS,
+                   ROTATE);
 
-  return(out);
-}
-
-//' Evaluate the gradient of the probability of getting a specific grade
-//'
-//' @param GRADE Grade used as reference
-//' @param EXAM Exam of interest. Integers from 0 to N_EXAMS -1.
-//' @param THETA_IRT Portion of the parameter vector related to the IRT model
-//' @param N_GRADES Number of grades modelled.
-//' @param N_EXAMS Number of exams.
-//' @param ABILITY Ability value.
-//' @param LOGFLAG Set TRUE to return log value.
-//'
-//' @returns It returns the gradient of the probability of obtaining the grade `GRADE` on exam `EXAM`.
-//' @export
-// [[Rcpp::export]]
-Eigen::VectorXd gr_pGrade(
-    const unsigned int GRADE,
-    const unsigned int EXAM,
-    Eigen::VectorXd& THETA_IRT,
-    const unsigned int N_GRADES,
-    const unsigned int N_EXAMS,
-    const double ABILITY
-){
-  double out;
-  Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA_IRT.size());
-
-  if(GRADE==N_GRADES){
-       gr = gr_pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-  }else if(GRADE==0){
-       gr = - gr_pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-  }else if(GRADE<N_GRADES & GRADE >0){
-       gr = gr_pGreaterGrades(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY) - gr_pGreaterGrades(GRADE+1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
+  double ll = irt_mod.ll(ABILITY, SPEED);
+  Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA.size());
+  if(GRFLAG){
+    gr = irt_mod.grll(ABILITY, SPEED);
   }
 
-  return(gr);
+  Rcpp::List output =
+    Rcpp::List::create(
+      Rcpp::Named("gr") = gr,
+      Rcpp::Named("ll") = ll
+    );
+
+  return output;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif

@@ -1,233 +1,112 @@
+n <- 10
+set.seed(123)
+
+### gen params ####
 n_grades <- 4L
 n_exams <- 3L
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-set.seed(123)
-theta_irt <- rnorm(n_exams*(n_grades+3))
-mat <- irtVec2Mat(
-  THETA_IRT = theta_irt,
+theta <- rnorm(n_exams*(n_grades+3)+2)
+parList <- parVec2List(
+  THETA = theta,
   N_GRADES = n_grades,
   N_EXAMS = n_exams,
   LABS_EXAMS = labs_exams,
-  LABS_GRADES = labs_grades
-)
-
-#### test output value and gradient ####
-set.seed(123)
-abilities <- sort(rnorm(3, 0, 2), decreasing = T)
-for (abi_index in 1:length(abilities)) {
-  for (grade in 1:n_grades) {
-    for (exam in 1:n_exams) {
-      probGG <- pGreaterGrades(
-        GRADE = grade,
-        EXAM = exam-1,
-        THETA_IRT = theta_irt,
-        N_GRADES = n_grades,
-        N_EXAMS = n_exams,
-        ABILITY = abilities[abi_index]
-      )
-      lprobG <- pGrade(
-        GRADE = grade,
-        EXAM = exam-1,
-        THETA_IRT = theta_irt,
-        N_GRADES = n_grades,
-        N_EXAMS = n_exams,
-        ABILITY = abilities[abi_index],
-        LOGFLAG = TRUE
-      )
-
-      lprobGG <- pGreaterGrades(
-        GRADE = grade,
-        EXAM = exam-1,
-        THETA_IRT = theta_irt,
-        N_GRADES = n_grades,
-        N_EXAMS = n_exams,
-        ABILITY = abilities[abi_index],
-        LOGFLAG = TRUE
-      )
-
-      test_that("pGreaterGrades() val", {
-        expect_equal(
-          probGG,
-          exp(mat[exam,n_grades+1]*abilities[abi_index]-mat[exam,grade])/(1+exp(mat[exam,n_grades+1]*abilities[abi_index]-mat[exam,grade]))
-        )
-      })
-
-      test_that("pGreaterGrades() log val", {
-        expect_equal(
-          lprobGG,
-          log(exp(mat[exam,n_grades+1]*abilities[abi_index]-mat[exam,grade])/(1+exp(mat[exam,n_grades+1]*abilities[abi_index]-mat[exam,grade])))
-        )
-      })
-
-      if(grade>1){
-        probprevGG <- pGreaterGrades(
-          GRADE = grade-1,
-          EXAM = exam-1,
-          THETA_IRT = theta_irt,
-          N_GRADES = n_grades,
-          N_EXAMS = n_exams,
-          ABILITY = abilities[abi_index]
-        )
-
-        test_that("pGreaterGrades() decreases with higher grades",{
-          expect_true(probprevGG>probGG)
-        })
+  LABS_GRADES = labs_grades)
+irtMat <- parList$irt
 
 
+latMat <- matrix(rnorm(n*2), n, 2)
 
-      }
+#### sim grades ####
+gradesMat <- matrix(0, n, n_exams)
 
-      if(grade < n_grades){
-        probnextGG <- pGreaterGrades(
-          GRADE = grade+1,
-          EXAM = exam-1,
-          THETA_IRT = theta_irt,
-          N_GRADES = n_grades,
-          N_EXAMS = n_exams,
-          ABILITY = abilities[abi_index]
-        )
-        tmp <- log(probGG-probnextGG)
-        test_that("pGrade() log",{
-          expect_equal(lprobG, tmp)
-        })
-      }else{
-        test_that("pGrade() log",{
-          expect_equal(lprobG, lprobGG)
-        })
-      }
+for (i in 1:n) {
+  for (e in 1:n_exams) {
+    #linear predictor exams X grades
+    linp <- irtMat[e, n_grades+1] * latMat[i,1] - irtMat[e, 1:n_grades]
 
-      if(abi_index>1){
-        probprevGG <- pGreaterGrades(
-          GRADE = grade,
-          EXAM = exam-1,
-          THETA_IRT = theta_irt,
-          N_GRADES = n_grades,
-          N_EXAMS = n_exams,
-          ABILITY = abilities[abi_index-1]
-        )
+    # probabilities of greater grades
+    pgg <- exp(linp)/(1+exp(linp))
 
-        # check probs are decresing with higher grades
-        test_that("pGreaterGrades() decreases with lower ability",{
-          expect_true(probprevGG>probGG)
-        })
-      }
+    # probabilities of grades
+    pg <- c(pgg[1:(n_grades-1)] - pgg[2:n_grades], pgg[n_grades])
+    gradesMat[i,e] <- which(rmultinom(n = 1, size=1, prob = c(1-sum(pg), pg))==1)-1
 
-
-
-
-
-
-      FUNprobGG <-function(PAR){
-        pGreaterGrades(
-          GRADE = grade,
-          EXAM = exam-1,
-          THETA_IRT = PAR,
-          N_GRADES = n_grades,
-          N_EXAMS = n_exams,
-          ABILITY = abilities[abi_index],
-          LOGFLAG = FALSE
-        )
-      }
-      grGG <- gr_pGreaterGrades(
-        GRADE = grade,
-        EXAM = exam-1,
-        THETA_IRT = theta_irt,
-        N_GRADES = n_grades,
-        N_EXAMS = n_exams,
-        ABILITY = abilities[abi_index]
-      )
-      test_that("pGreaterGrades() gradient",{
-        skip_if_not_installed("numDeriv")
-        Rval <- numDeriv::grad(func = FUNprobGG, x = theta_irt)
-
-        expect_equal(Rval, grGG)
-      })
-
-      FUNprobG <-function(PAR){
-        pGrade(
-          GRADE = grade,
-          EXAM = exam-1,
-          THETA_IRT = PAR,
-          N_GRADES = n_grades,
-          N_EXAMS = n_exams,
-          ABILITY = abilities[abi_index],
-          LOGFLAG = FALSE
-        )
-      }
-      grG <- gr_pGrade(
-        GRADE = grade,
-        EXAM = exam-1,
-        THETA_IRT = theta_irt,
-        N_GRADES = n_grades,
-        N_EXAMS = n_exams,
-        ABILITY = abilities[abi_index]
-      )
-      test_that("pGrade() gradient",{
-        skip_if_not_installed("numDeriv")
-        Rval <- numDeriv::grad(func = FUNprobG, x = theta_irt)
-
-        expect_equal(Rval, grG)
-      })
-    }
   }
 }
 
-test_that("pGreaterGrades() log extreme ability", {
 
-  abilities <- c(1000, -1000)
-  for (abi_index in 1:length(abilities)) {
-    for (grade in 1:n_grades) {
-      for (exam in 1:n_exams) {
-        prob <- pGreaterGrades(
-          GRADE = grade,
-          EXAM = exam-1,
-          THETA_IRT = theta_irt,
-          N_GRADES = n_grades,
-          N_EXAMS = n_exams,
-          ABILITY = abilities[abi_index],
-          LOGFLAG = TRUE
-        )
 
-        # check for finite values
-        expect_true(is.finite(prob))
-
-      }
-    }
+#### sim times ####
+set.seed(123)
+timeMat <- matrix(0, n, n_exams)
+for (i in 1:n) {
+  for (e in 1:n_exams) {
+    timeMat[i,e] <- exp(
+      rnorm(1,
+            mean = irtMat[e, n_grades + 2]-latMat[i,2],
+            sd = 1/irtMat[e, n_grades + 3])
+    )
   }
+}
+timeMat[gradesMat==0] <- NA
 
+#### mat to-do ####
+todoMat <- matrix(1, n, n_exams)
 
-})
+#### censoring ####
+max_day <- max(timeMat, na.rm = TRUE)+10
+timeMat[timeMat>max_day] <- NA
+obsMat <- matrix(1, n, n_exams)
+obsMat[is.na(timeMat)] <- 0
+#### checks ####
 
+rfun <- function(PAR, ID, ROTATE){
+  conditional_igrtcm(THETA = PAR,
+                 EXAMS_GRADES = gradesMat[ID,],
+                 EXAMS_DAYS = timeMat[ID,],
+                 EXAMS_SET = todoMat[ID,],
+                 EXAMS_OBSFLAG = obsMat[ID,],
+                 MAX_DAY = max_day,
+                 N_GRADES = n_grades,
+                 N_EXAMS = n_exams,
+                 ABILITY = latMat[ID,1],
+                 SPEED = latMat[ID,2],
+                 ROTATE = ROTATE)$ll
+}
 
-test_that("check pGrade() probability space", {
+for (i in 1:n) {
+  test_that("Gradient with no latent rotation", {
+    val <- conditional_igrtcm(THETA = theta,
+                              EXAMS_GRADES = gradesMat[i,],
+                              EXAMS_DAYS = timeMat[i,],
+                              EXAMS_SET = todoMat[i,],
+                              EXAMS_OBSFLAG = obsMat[i,],
+                              MAX_DAY = max_day,
+                              N_GRADES = n_grades,
+                              N_EXAMS = n_exams,
+                              ABILITY = latMat[i,1],
+                              SPEED = latMat[i,2],
+                              ROTATE = FALSE)$gr
+    Rval <- numDeriv::grad(func = rfun, x = theta, ID = i, ROTATE = FALSE)
+    expect_equal(val, Rval)
+  })
 
-  set.seed(321)
-  abilities <- sort(rnorm(3, 0, 2), decreasing = T)
-  for (abi_index in 1:length(abilities)) {
-    for (exam in 1:n_exams) {
-      probs <- rep(NA, n_grades+1)
-      for (grade in 0:n_grades) {
-
-
-        probs[grade+1] <- pGrade(
-          GRADE = grade,
-          EXAM = exam-1,
-          THETA_IRT = theta_irt,
-          N_GRADES = n_grades,
-          N_EXAMS = n_exams,
-          ABILITY = abilities[abi_index]
-        )
-
-
-
-
-      }
-      expect_equal(sum(probs),1)
-    }
-
-  }
-
-})
-
+  test_that("Gradient with latent rotation", {
+    val <- conditional_igrtcm(THETA = theta,
+                              EXAMS_GRADES = gradesMat[i,],
+                              EXAMS_DAYS = timeMat[i,],
+                              EXAMS_SET = todoMat[i,],
+                              EXAMS_OBSFLAG = obsMat[i,],
+                              MAX_DAY = max_day,
+                              N_GRADES = n_grades,
+                              N_EXAMS = n_exams,
+                              ABILITY = latMat[i,1],
+                              SPEED = latMat[i,2],
+                              ROTATE = TRUE)$gr
+    Rval <- numDeriv::grad(func = rfun, x = theta, ID = i, ROTATE = TRUE)
+    expect_equal(val, Rval)
+  })
+}
 
