@@ -28,3 +28,5 @@ Imports:
     dplyr,
     tidyr,
     ucminf
+URL: https://github.com/giuseppealfonzetti/crirt
+BugReports: https://github.com/giuseppealfonzetti/crirt/issues
