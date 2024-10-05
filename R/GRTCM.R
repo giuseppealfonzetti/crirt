@@ -90,16 +90,16 @@ fit_GRTCM <- function(DATA, GRADE_COL = "xcat",
   )
 }
 
-#' EAP GRTCM
+#' MAP GRTCM
 #'
-#' Compute EAP scores for Graded Response Time Censored Model
+#' Compute MAP scores for Graded Response Time Censored Model
 #'
 #' @param FIT Output from [fit_GRTCM]
 #' @param TIDY Return tidy parameter table
 #'
 #' @importFrom dplyr as_tibble
 #' @export
-eap_GRTCM <- function(FIT, TIDY = TRUE){
+map_GRTCM <- function(FIT, TIDY = TRUE){
 
 
 

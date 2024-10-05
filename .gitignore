@@ -7,3 +7,5 @@
 .gitignore
 test-Michela.R
 test_assets/
+test.qmd
+test.html
