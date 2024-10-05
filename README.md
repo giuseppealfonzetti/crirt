@@ -12,7 +12,7 @@ experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](h
 
 ## Installation
 
-You can install the development version of crirt like so:
+You can install the development version of crirt with:
 
 ``` r
 devtools::install_github("giuseppealfonzetti/crirt")
