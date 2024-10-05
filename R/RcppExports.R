@@ -35,6 +35,7 @@ examLik <- function(EXAM, GRADE, DAY, MAX_DAY, OBSFLAG, THETA_IRT, N_GRADES, N_E
 #' @param N_EXAMS Number of exams.
 #' @param ABILITY ability value.
 #' @param SPEED speed value.
+#' @param ROTATED Have the latent scores been rotated using their covariance matrix?
 #'
 #' @returns It returns the probability of observing or not a specific
 #' grade on a given exam before a given day conditioned on ability and speed.
@@ -147,6 +148,8 @@ gr_pGrade <- function(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY) {
 
 #' Log-likelihood and gradient of the conditional GRTC Model on one observation
 #'
+#' Used for internal testing
+#'
 #' @param THETA Parameter vector
 #' @param EXAMS_GRADES Vector of exam grades
 #' @param EXAMS_DAYS Vector of Eexam days
@@ -157,11 +160,32 @@ gr_pGrade <- function(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY) {
 #' @param N_EXAMS Number of possible exams modelled
 #' @param ABILITY Ability latent parameter
 #' @param SPEED Speed latent parameter
+#' @param ROTATE TRUE to rotate latent scores using their covariance matrix
 #' @param GRFLAG Set to true to return the gradient along the log-likelihood
 #'
 #' @export
 conditional_igrtcm <- function(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, ABILITY, SPEED, ROTATE, GRFLAG = TRUE) {
     .Call(`_crirt_conditional_igrtcm`, THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, ABILITY, SPEED, ROTATE, GRFLAG)
+}
+
+#' Log-likelihood and gradient of the complete GRTC Model on one observation
+#'
+#' Used for internal testing
+#'
+#' @param THETA Parameter vector
+#' @param EXAMS_GRADES Vector of exam grades
+#' @param EXAMS_DAYS Vector of exam days
+#' @param EXAMS_SET Vector of binary values. 1 to include an exam in the study-plan, 0 otherwise
+#' @param EXAMS_OBSFLAG Vector of binary values. 1 if the exam is observed, 0 otherwise
+#' @param MAX_DAY Maximum day of observation
+#' @param N_GRADES Number of possible grades modelled
+#' @param N_EXAMS Number of possible exams modelled
+#' @param ABILITY Ability latent parameter
+#' @param SPEED Speed latent parameter
+#'
+#' @export
+complete_igrtcm <- function(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, ABILITY, SPEED) {
+    .Call(`_crirt_complete_igrtcm`, THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, ABILITY, SPEED)
 }
 
 #' Latent distribution
@@ -185,6 +209,23 @@ internal_lat <- function(ABILITY, SPEED, PARS, GRFLAG = TRUE) {
     .Call(`_crirt_internal_lat`, ABILITY, SPEED, PARS, GRFLAG)
 }
 
+#' GRTCM computations with Gaussian quadrature
+#'
+#' Compute log-likelihood an gradient of the Graded response time-censored model
+#'
+#' @param THETA Parameter vector
+#' @param EXAMS_GRADES Matrix of exam grades
+#' @param EXAMS_DAYS Matrix of exam days
+#' @param EXAMS_SET Matrix of binary values. 1 to include an exam in the study-plan, 0 otherwise
+#' @param EXAMS_OBSFLAG Matrix of binary values. 1 if the exam is observed, 0 otherwise
+#' @param MAX_DAY Vector with maximum day per observation
+#' @param GRID Grid of quadrature points
+#' @param WEIGHTS Weights of quadrature points
+#' @param N_GRADES Number of possible grades modelled
+#' @param N_EXAMS Number of possible exams modelled
+#' @param ROTGRID TRUE to rotate the quadrature grid using the latent covariance matrix
+#' @param GRFLAG Set to true to return the gradient along the log-likelihood
+#'
 #' @export
 GRTCM_GH <- function(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, GRID, WEIGHTS, N_GRADES, N_EXAMS, GRFLAG = TRUE, ROTGRID = TRUE) {
     .Call(`_crirt_GRTCM_GH`, THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, GRID, WEIGHTS, N_GRADES, N_EXAMS, GRFLAG, ROTGRID)
@@ -227,11 +268,13 @@ pTimeExam <- function(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, CDFFLAG, LOGFL
 #' @param N_GRADES Number of grades modelled.
 #' @param N_EXAMS Number of exams.
 #' @param SPEED speed value.
+#' @param ABILITY ability value.
 #' @param CDFFLAG `TRUE` for c.d.f. of time. `FALSE` for p.d.f.
-#' @param ROTATED Have latent variables been rotated using their variance?
+#' @param ROTATED Have latent scores been rotated using their variance?
+#' @param LOGFLAG TRUE to compute the gradient of the log density.(not available for cdf)
 #'
 #' @export
-gr_pTimeExam <- function(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED) {
-    .Call(`_crirt_gr_pTimeExam`, EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED)
+gr_pTimeExam <- function(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED, LOGFLAG = FALSE) {
+    .Call(`_crirt_gr_pTimeExam`, EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED, LOGFLAG)
 }
 

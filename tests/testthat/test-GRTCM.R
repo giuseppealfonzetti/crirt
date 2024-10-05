@@ -1,9 +1,9 @@
 n <- 10
-set.seed(123)
+set.seed(2)
 
 ### gen params ####
 n_grades <- 4L
-n_exams <- 3L
+n_exams <- 10L
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
 theta <- rnorm(n_exams*(n_grades+3)+2)

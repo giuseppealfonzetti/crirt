@@ -82,8 +82,10 @@ double pTimeExam(
 //' @param N_GRADES Number of grades modelled.
 //' @param N_EXAMS Number of exams.
 //' @param SPEED speed value.
+//' @param ABILITY ability value.
 //' @param CDFFLAG `TRUE` for c.d.f. of time. `FALSE` for p.d.f.
-//' @param ROTATED Have latent variables been rotated using their variance?
+//' @param ROTATED Have latent scores been rotated using their variance?
+//' @param LOGFLAG TRUE to compute the gradient of the log density.(not available for cdf)
 //'
 //' @export
 // [[Rcpp::export]]
@@ -96,11 +98,12 @@ Eigen::VectorXd gr_pTimeExam(
      const double SPEED,
      const double ABILITY,
      const bool CDFFLAG,
-     const bool ROTATED
+     const bool ROTATED,
+     const bool LOGFLAG = false
 ){
   const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
 
-  Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA.size());
+  Eigen::VectorXd gr = Eigen::VectorXd::Zero(dim_irt+2);
   std::vector<double> pars(2);
   pars[0] = extract_params_irt(THETA, N_GRADES, N_EXAMS, 3, EXAM)(0);
   pars[1] = extract_params_irt(THETA, N_GRADES, N_EXAMS, 4, EXAM)(0);
@@ -111,24 +114,36 @@ Eigen::VectorXd gr_pTimeExam(
   std::vector<unsigned int> idx_m = extract_params_idx_irt(THETA, N_GRADES, N_EXAMS, 3, EXAM);
   std::vector<unsigned int> idx_v = extract_params_idx_irt(THETA, N_GRADES, N_EXAMS, 4, EXAM);
 
-
   if(CDFFLAG){
     const double tmp = R::dnorm(pars[1]*(log(DAY)-mean), 0, 1, false);
     gr(idx_m[0]) = -tmp*pars[1];
     gr(idx_v[0]) = tmp*(log(DAY)-mean)*pars[1];
     if(ROTATED){
+      double speed_raw = (SPEED -THETA(dim_irt)*ABILITY)/THETA(dim_irt+1);
       gr(dim_irt) = tmp*pars[1]*ABILITY;
-      gr(dim_irt+1) = tmp*pars[1]*(SPEED - THETA(dim_irt)*ABILITY)/THETA(dim_irt+1);
+      gr(dim_irt+1) = tmp*pars[1]*speed_raw;
     }
-    }else{
+  }else{
+    if(!LOGFLAG){
       const double tmp = R::dlnorm(DAY, mean, sd, false);
       gr(idx_m[0]) = tmp*pow(pars[1],2)*(log(DAY)-mean);
       gr(idx_v[0]) = (tmp/pars[1] - tmp * pars[1] * pow(log(DAY)-mean, 2))*pars[1];
       if(ROTATED){
-        gr(dim_irt) =  - tmp * pow(pars[1],2)*(log(DAY)-mean)*ABILITY;
-        gr(dim_irt+1) =  - tmp * pow(pars[1],2)*(log(DAY)-mean)*(SPEED - THETA(dim_irt)*ABILITY)/THETA(dim_irt+1);
+        double speed_raw = (SPEED -THETA(dim_irt)*ABILITY)/THETA(dim_irt+1);
+        gr(dim_irt) =  -tmp * pow(pars[1],2)*(log(DAY)-mean)*ABILITY;
+        gr(dim_irt+1) =  -tmp * pow(pars[1],2)*(log(DAY)-mean)*speed_raw;
+      }
+    }else{
+      gr(idx_v[0]) = 1 - pow(pars[1],2) * pow(log(DAY)-mean, 2);
+      gr(idx_m[0]) = pow(pars[1],2)*(log(DAY)-mean);
+      if(ROTATED){
+        double speed_raw = (SPEED -THETA(dim_irt)*ABILITY)/THETA(dim_irt+1);
+        gr(dim_irt) =  -pow(pars[1],2)*(log(DAY)-mean)*ABILITY;
+        gr(dim_irt+1) =  -pow(pars[1],2)*(log(DAY)-mean)*speed_raw;
       }
     }
+
+  }
 
   return(gr);
 }

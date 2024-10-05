@@ -96,3 +96,56 @@ parList2Vec <- function(LIST){
 
   return(theta)
 }
+
+#' Unconstrained parameter vector to reparametrisation
+#'
+#' Reparametrise unconstrained parameters
+#'
+#' @param THETA Parameter vector.
+#' @param N_GRADES number of grades modeled.
+#' @param N_EXAMS number of exams.
+#' @param LABS_EXAMS optional label for exams
+#' @param LABS_GRADES optional label for grades
+#' @param TIDY TRUE to get tidy parameters table
+#'
+#' @importFrom tidyr pivot_longer tribble as_tibble
+#' @importFrom dplyr all_of bind_rows
+#' @export
+parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, LABS_EXAMS=NULL, LABS_GRADES=NULL, TIDY=FALSE){
+  dim_irt <- N_EXAMS * (N_GRADES+3)
+
+  out <- list()
+
+  # IRT parameters
+  irtMat <- irtVec2Mat(THETA_IRT = THETA[1:dim_irt],
+                             N_GRADES = N_GRADES,
+                             N_EXAMS = N_EXAMS,
+                             LABS_EXAMS = LABS_EXAMS,
+                             LABS_GRADES = LABS_GRADES)
+  irtVec <- as.numeric(t(irtMat))
+
+  # latent params
+  L <- matrix(c(1,THETA[dim_irt+1], 0, THETA[dim_irt+2]),2,2)
+  S <- L %*% t(L)
+  speed_sd <- sqrt(S[2,2])
+  lat_cor <- S[2,1]/speed_sd
+
+  latVec <- c(speed_sd, lat_cor)
+
+
+  if(TIDY){
+    out <- as_tibble(irtMat, rownames = "group") |>
+      pivot_longer(cols = -all_of("group"), names_to = "type", values_to = "par") |>
+      bind_rows(
+        tribble(
+          ~group, ~type, ~par,
+          "latent", "speed_sd", speed_sd,
+          "latent", "correlation", lat_cor
+        )
+      )
+  }else{
+    out <- c(irtVec, latVec)
+  }
+
+  return(out)
+}

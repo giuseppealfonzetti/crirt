@@ -42,12 +42,18 @@ public:
   _n_exams(N_EXAMS),
   _rotated(ROTATED)
   {
-    _dim_irt = 3*N_EXAMS + N_EXAMS*N_GRADES;
+    _dim_irt = N_EXAMS*(N_GRADES+3);
   }
 
+  // conditional log-likelihood
   double ll(const double ABILITY, const double SPEED);
 
+  //gradient of conditional log-likelihood
   Eigen::VectorXd grll(const double ABILITY, const double SPEED);
+
+  // complete log-likelihood
+  double cll(const double ABILITY, const double SPEED);
+
 };
 
 double GRTC_MOD::ll(const double ABILITY, const double SPEED) {
@@ -72,6 +78,30 @@ double GRTC_MOD::ll(const double ABILITY, const double SPEED) {
 
   return out;
 }
+double GRTC_MOD::cll(const double ABILITY, const double SPEED) {
+
+  LAT_DISTR lat(_theta.segment(_dim_irt,2));
+  double out = lat.ll(ABILITY, SPEED);
+
+  for(unsigned int exam = 0; exam < _n_exams; exam++){
+
+    if(_exams_set[exam]){
+      out += examLik(exam,
+                     _exams_grades(exam),
+                     _exams_days(exam),
+                     _max_day,
+                     _exams_obsflag(exam),
+                     _theta,
+                     _n_grades,
+                     _n_exams,
+                     ABILITY, SPEED, 1);
+
+    }
+  }
+
+  return out;
+}
+
 Eigen::VectorXd GRTC_MOD::grll(const double ABILITY, const double SPEED){
 
   Eigen::VectorXd gr = Eigen::VectorXd::Zero(_theta.size());
@@ -99,6 +129,8 @@ Eigen::VectorXd GRTC_MOD::grll(const double ABILITY, const double SPEED){
 
 //' Log-likelihood and gradient of the conditional GRTC Model on one observation
 //'
+//' Used for internal testing
+//'
 //' @param THETA Parameter vector
 //' @param EXAMS_GRADES Vector of exam grades
 //' @param EXAMS_DAYS Vector of Eexam days
@@ -109,6 +141,7 @@ Eigen::VectorXd GRTC_MOD::grll(const double ABILITY, const double SPEED){
 //' @param N_EXAMS Number of possible exams modelled
 //' @param ABILITY Ability latent parameter
 //' @param SPEED Speed latent parameter
+//' @param ROTATE TRUE to rotate latent scores using their covariance matrix
 //' @param GRFLAG Set to true to return the gradient along the log-likelihood
 //'
 //' @export
@@ -129,9 +162,10 @@ Rcpp::List conditional_igrtcm(
 ){
 
   const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+  double speed = SPEED;
 
   if(ROTATE){
-    SPEED = THETA(dim_irt)*ABILITY + THETA(dim_irt+1)*SPEED;
+    speed = THETA(dim_irt)*ABILITY + THETA(dim_irt+1)*SPEED;
   }
 
   GRTC_MOD irt_mod(THETA,
@@ -144,10 +178,10 @@ Rcpp::List conditional_igrtcm(
                    N_EXAMS,
                    ROTATE);
 
-  double ll = irt_mod.ll(ABILITY, SPEED);
-  Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA.size());
+  double ll = irt_mod.ll(ABILITY, speed);
+  Eigen::VectorXd gr = Eigen::VectorXd::Zero(dim_irt+2);
   if(GRFLAG){
-    gr = irt_mod.grll(ABILITY, SPEED);
+    gr = irt_mod.grll(ABILITY, speed);
   }
 
   Rcpp::List output =
@@ -159,7 +193,53 @@ Rcpp::List conditional_igrtcm(
   return output;
 }
 
+//' Log-likelihood and gradient of the complete GRTC Model on one observation
+//'
+//' Used for internal testing
+//'
+//' @param THETA Parameter vector
+//' @param EXAMS_GRADES Vector of exam grades
+//' @param EXAMS_DAYS Vector of exam days
+//' @param EXAMS_SET Vector of binary values. 1 to include an exam in the study-plan, 0 otherwise
+//' @param EXAMS_OBSFLAG Vector of binary values. 1 if the exam is observed, 0 otherwise
+//' @param MAX_DAY Maximum day of observation
+//' @param N_GRADES Number of possible grades modelled
+//' @param N_EXAMS Number of possible exams modelled
+//' @param ABILITY Ability latent parameter
+//' @param SPEED Speed latent parameter
+//'
+//' @export
+// [[Rcpp::export]]
+double complete_igrtcm(
+     Eigen::VectorXd& THETA,
+     Eigen::VectorXd& EXAMS_GRADES,
+     Eigen::VectorXd& EXAMS_DAYS,
+     Eigen::VectorXd& EXAMS_SET,
+     Eigen::VectorXd& EXAMS_OBSFLAG,
+     const unsigned int MAX_DAY,
+     const unsigned int N_GRADES,
+     const unsigned int N_EXAMS,
+     const double ABILITY,
+     double SPEED
+ ){
 
+   const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+
+   GRTC_MOD irt_mod(THETA,
+                    EXAMS_GRADES,
+                    EXAMS_DAYS,
+                    EXAMS_SET,
+                    EXAMS_OBSFLAG,
+                    MAX_DAY,
+                    N_GRADES,
+                    N_EXAMS,
+                    false);
+
+   double cll = irt_mod.cll(ABILITY, SPEED);
+
+
+   return cll;
+ }
 
 
 

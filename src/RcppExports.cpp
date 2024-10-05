@@ -171,6 +171,26 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// complete_igrtcm
+double complete_igrtcm(Eigen::VectorXd& THETA, Eigen::VectorXd& EXAMS_GRADES, Eigen::VectorXd& EXAMS_DAYS, Eigen::VectorXd& EXAMS_SET, Eigen::VectorXd& EXAMS_OBSFLAG, const unsigned int MAX_DAY, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double ABILITY, double SPEED);
+RcppExport SEXP _crirt_complete_igrtcm(SEXP THETASEXP, SEXP EXAMS_GRADESSEXP, SEXP EXAMS_DAYSSEXP, SEXP EXAMS_SETSEXP, SEXP EXAMS_OBSFLAGSEXP, SEXP MAX_DAYSEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP ABILITYSEXP, SEXP SPEEDSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_GRADES(EXAMS_GRADESSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_DAYS(EXAMS_DAYSSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_SET(EXAMS_SETSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd& >::type EXAMS_OBSFLAG(EXAMS_OBSFLAGSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type MAX_DAY(MAX_DAYSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_GRADES(N_GRADESSEXP);
+    Rcpp::traits::input_parameter< const unsigned int >::type N_EXAMS(N_EXAMSSEXP);
+    Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
+    Rcpp::traits::input_parameter< double >::type SPEED(SPEEDSEXP);
+    rcpp_result_gen = Rcpp::wrap(complete_igrtcm(THETA, EXAMS_GRADES, EXAMS_DAYS, EXAMS_SET, EXAMS_OBSFLAG, MAX_DAY, N_GRADES, N_EXAMS, ABILITY, SPEED));
+    return rcpp_result_gen;
+END_RCPP
+}
 // internal_lat
 Rcpp::List internal_lat(const double ABILITY, const double SPEED, Eigen::VectorXd PARS, const bool GRFLAG);
 RcppExport SEXP _crirt_internal_lat(SEXP ABILITYSEXP, SEXP SPEEDSEXP, SEXP PARSSEXP, SEXP GRFLAGSEXP) {
@@ -238,8 +258,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // gr_pTimeExam
-Eigen::VectorXd gr_pTimeExam(const unsigned int EXAM, const double DAY, Eigen::VectorXd& THETA, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double SPEED, const double ABILITY, const bool CDFFLAG, const bool ROTATED);
-RcppExport SEXP _crirt_gr_pTimeExam(SEXP EXAMSEXP, SEXP DAYSEXP, SEXP THETASEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP SPEEDSEXP, SEXP ABILITYSEXP, SEXP CDFFLAGSEXP, SEXP ROTATEDSEXP) {
+Eigen::VectorXd gr_pTimeExam(const unsigned int EXAM, const double DAY, Eigen::VectorXd& THETA, const unsigned int N_GRADES, const unsigned int N_EXAMS, const double SPEED, const double ABILITY, const bool CDFFLAG, const bool ROTATED, const bool LOGFLAG);
+RcppExport SEXP _crirt_gr_pTimeExam(SEXP EXAMSEXP, SEXP DAYSEXP, SEXP THETASEXP, SEXP N_GRADESSEXP, SEXP N_EXAMSSEXP, SEXP SPEEDSEXP, SEXP ABILITYSEXP, SEXP CDFFLAGSEXP, SEXP ROTATEDSEXP, SEXP LOGFLAGSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -252,7 +272,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type ABILITY(ABILITYSEXP);
     Rcpp::traits::input_parameter< const bool >::type CDFFLAG(CDFFLAGSEXP);
     Rcpp::traits::input_parameter< const bool >::type ROTATED(ROTATEDSEXP);
-    rcpp_result_gen = Rcpp::wrap(gr_pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED));
+    Rcpp::traits::input_parameter< const bool >::type LOGFLAG(LOGFLAGSEXP);
+    rcpp_result_gen = Rcpp::wrap(gr_pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, ABILITY, CDFFLAG, ROTATED, LOGFLAG));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -267,11 +288,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"_crirt_pGrade", (DL_FUNC) &_crirt_pGrade, 7},
     {"_crirt_gr_pGrade", (DL_FUNC) &_crirt_gr_pGrade, 6},
     {"_crirt_conditional_igrtcm", (DL_FUNC) &_crirt_conditional_igrtcm, 12},
+    {"_crirt_complete_igrtcm", (DL_FUNC) &_crirt_complete_igrtcm, 10},
     {"_crirt_internal_lat", (DL_FUNC) &_crirt_internal_lat, 4},
     {"_crirt_GRTCM_GH", (DL_FUNC) &_crirt_GRTCM_GH, 12},
     {"_crirt_reparThr", (DL_FUNC) &_crirt_reparThr, 2},
     {"_crirt_pTimeExam", (DL_FUNC) &_crirt_pTimeExam, 8},
-    {"_crirt_gr_pTimeExam", (DL_FUNC) &_crirt_gr_pTimeExam, 9},
+    {"_crirt_gr_pTimeExam", (DL_FUNC) &_crirt_gr_pTimeExam, 10},
     {NULL, NULL, 0}
 };
 

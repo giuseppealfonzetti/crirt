@@ -55,9 +55,6 @@ double examLik(
     return(exp(out));
   }
 
-
-  return(out);
-
 }
 
 
@@ -73,6 +70,7 @@ double examLik(
 //' @param N_EXAMS Number of exams.
 //' @param ABILITY ability value.
 //' @param SPEED speed value.
+//' @param ROTATED Have the latent scores been rotated using their covariance matrix?
 //'
 //' @returns It returns the probability of observing or not a specific
 //' grade on a given exam before a given day conditioned on ability and speed.
@@ -92,30 +90,43 @@ Eigen::VectorXd grl_examLik(
     const double SPEED,
     const bool ROTATED
 ){
-  double logp, logpExam, logpTime;
-  Eigen::VectorXd gr = Eigen::VectorXd::Zero(THETA_IRT.size());
+  double logp, logpGrade, logpTime;
+  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+
+  Eigen::VectorXd gr = Eigen::VectorXd::Zero(dim_irt+2);
 
 
   if(OBSFLAG){
-     logpExam = pGrade(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
+     logpGrade = pGrade(GRADE, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
      logpTime = pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES,  N_EXAMS, SPEED, false, true);
-     Eigen::VectorXd grTime = gr_pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, ABILITY, false, ROTATED);
-     Eigen::VectorXd grExam = gr_pGrade(GRADE,EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
+     Eigen::VectorXd grlTime = gr_pTimeExam(EXAM, DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, ABILITY, false, ROTATED, true);
+     Eigen::VectorXd grGrade = gr_pGrade(GRADE,EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
 
-     gr = grTime*exp(logpExam) + exp(logpTime)*grExam;
-     logp = logpExam+logpTime;
+     gr = grlTime + grGrade /exp(logpGrade);
+
+
+     // gr = grTime*exp(logpExam) + exp(logpTime)*grExam;
+     logp = logpGrade+logpTime;
   }else{
-     logpExam = pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
+     logpGrade = pGreaterGrades(1, EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY, true);
      logpTime = pTimeExam(EXAM, MAX_DAY, THETA_IRT, N_GRADES,  N_EXAMS, SPEED, true, true);
-     Eigen::VectorXd grExam = gr_pGreaterGrades(1,EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
-     Eigen::VectorXd grTime = gr_pTimeExam(EXAM, MAX_DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, ABILITY, true, ROTATED);
+     Eigen::VectorXd grGrade = gr_pGreaterGrades(1,EXAM, THETA_IRT, N_GRADES, N_EXAMS, ABILITY);
+     Eigen::VectorXd grTime = gr_pTimeExam(EXAM, MAX_DAY, THETA_IRT, N_GRADES, N_EXAMS, SPEED, ABILITY, true, ROTATED, false);
+//
+//      logpExam/= 100;
+//      logpTime/= 100;
 
-     gr = -(grTime*exp(logpExam) + exp(logpTime)*grExam);
-     logp = log1mexp(-logpExam-logpTime);
-     logp = std::max(-10000.0, logp);  // avoid log(0)
+     gr = -(grTime*exp(logpGrade) + exp(logpTime)*grGrade);
+     logp = log1mexp(-logpGrade-logpTime);
+     logp = std::max(-1000.0, logp);  // avoid log(0)
+     gr/= exp(logp);
    }
 
-   gr/=std::max(1e-16, exp(logp));
+  // gr/=std::max(1e-20, exp(logp));
+  // logp/= 10;
+
+  // Eigen::VectorXi is_selected = (gr.array() != 0).cast<int>();
+  // gr/= exp(logp);
 
 
    return(gr);

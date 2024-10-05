@@ -14,7 +14,8 @@ grl_examLik(
   N_GRADES,
   N_EXAMS,
   ABILITY,
-  SPEED
+  SPEED,
+  ROTATED
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ grl_examLik(
 \item{ABILITY}{ability value.}
 
 \item{SPEED}{speed value.}
+
+\item{ROTATED}{Have the latent scores been rotated using their covariance matrix?}
 }
 \value{
 It returns the probability of observing or not a specific

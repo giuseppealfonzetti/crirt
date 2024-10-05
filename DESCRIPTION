@@ -26,4 +26,5 @@ Imports:
     Rcpp,
     RcppEigen,
     dplyr,
-    tidyr
+    tidyr,
+    ucminf

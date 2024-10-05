@@ -4,23 +4,14 @@
 \alias{pTimeExam}
 \title{Evaluate the c.d.f or p.d.f of the last attempt to an exam}
 \usage{
-pTimeExam(
-  EXAM,
-  DAY,
-  THETA_IRT,
-  N_GRADES,
-  N_EXAMS,
-  SPEED,
-  CDFFLAG,
-  LOGFLAG = FALSE
-)
+pTimeExam(EXAM, DAY, THETA, N_GRADES, N_EXAMS, SPEED, CDFFLAG, LOGFLAG = FALSE)
 }
 \arguments{
 \item{EXAM}{Exam of interest. Integers from 0 to N_EXAMS -1.}
 
 \item{DAY}{Day of interest.}
 
-\item{THETA_IRT}{Portion of the parameter vector related to the IRT model}
+\item{THETA}{Portion of the parameter vector related to the IRT model}
 
 \item{N_GRADES}{Number of grades modelled.}
 

@@ -8,6 +8,23 @@
 #include "latent.h"
 #include "irtMod.h"
 
+//' GRTCM computations with Gaussian quadrature
+//'
+//' Compute log-likelihood an gradient of the Graded response time-censored model
+//'
+//' @param THETA Parameter vector
+//' @param EXAMS_GRADES Matrix of exam grades
+//' @param EXAMS_DAYS Matrix of exam days
+//' @param EXAMS_SET Matrix of binary values. 1 to include an exam in the study-plan, 0 otherwise
+//' @param EXAMS_OBSFLAG Matrix of binary values. 1 if the exam is observed, 0 otherwise
+//' @param MAX_DAY Vector with maximum day per observation
+//' @param GRID Grid of quadrature points
+//' @param WEIGHTS Weights of quadrature points
+//' @param N_GRADES Number of possible grades modelled
+//' @param N_EXAMS Number of possible exams modelled
+//' @param ROTGRID TRUE to rotate the quadrature grid using the latent covariance matrix
+//' @param GRFLAG Set to true to return the gradient along the log-likelihood
+//'
 //' @export
 // [[Rcpp::export]]
 Rcpp::List GRTCM_GH(
@@ -66,9 +83,10 @@ Rcpp::List GRTCM_GH(
 
     }
     double lli = std::max(-10000.0, log(f.dot(WEIGHTS)));
+
     ll += lli;
     if(GRFLAG){
-      grll += gr*WEIGHTS/std::max(1e-16,exp(lli));
+      grll += gr*WEIGHTS/exp(lli);
     }
   }
 

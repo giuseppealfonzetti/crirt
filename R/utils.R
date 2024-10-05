@@ -13,7 +13,7 @@
 #' @importFrom rlang .data
 #' @importFrom dplyr select arrange mutate group_by starts_with ungroup across everything
 #' @importFrom tidyr pivot_wider nest unnest replace_na
-getDataInfo <- function(
+dataRestruct <- function(
     DATA_IRT,
     GRADE_COL = "xcat",
     EXAM_COL = "itemID",
@@ -53,8 +53,14 @@ getDataInfo <- function(
   gradesMat <- nestedIRT |> unnest('grades') |> select(.data$subject_id, starts_with('grade')) |> arrange(.data$subject_id) |>
     ungroup(.data$subject_id) |> select(-.data$subject_id) |> as.matrix()
 
+  gradesMat_idx <- matrix(sapply(gradesMat, function(x) if(!is.na(x)){which(grades_labs==as.character(x))}else{x}), nrow(gradesMat), ncol(gradesMat))
+  gradesMat <- gradesMat_idx
+
   timeMat <- nestedIRT |> unnest('times') |> select(.data$subject_id, starts_with('time')) |> arrange(.data$subject_id) |>
     ungroup(.data$subject_id) |> select(-.data$subject_id) |> as.matrix()
+
+  colnames(todoMat) <- colnames(gradesMat) <- colnames(timeMat) <- exams_labs
+  rownames(todoMat) <- rownames(gradesMat) <- rownames(timeMat) <- ids
 
   out <- list(
     "obs_ids" = ids,
@@ -69,7 +75,6 @@ getDataInfo <- function(
     "timeMat" = timeMat,
     "nested_IRT" = nestedIRT
   )
-
 
   return(out)
 }
