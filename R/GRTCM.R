@@ -148,7 +148,7 @@ se_GRTCM <- function(FIT, TIDY = TRUE){
                                    N_GRADES = FIT$data$n_grades, N_EXAMS = FIT$data$n_exams,
                                    LABS_EXAMS = FIT$data$exams_labs, LABS_GRADES = FIT$data$grades_labs)
 
-  seVec <- sqrt(diag(t(reparJacob) %*% FIT$fit$invhessian %*% reparJacob))/sqrt(nrow(FIT$data$gradesMat))
+  seVec <- sqrt(diag(t(reparJacob) %*% FIT$fit$invhessian %*% reparJacob))
 
   if(TIDY){
     out <- parVec2Repar(FIT$fit$par,
