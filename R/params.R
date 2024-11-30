@@ -58,13 +58,17 @@ irtMat2Vec <- function(MAT){
 #' @param THETA Parameter vector.
 #' @param N_GRADES number of grades modeled.
 #' @param N_EXAMS number of exams.
+#' @param N_COV number of covariates in the competing risk model
 #' @param LABS_EXAMS optional label for exams
-#' @param LABS_GRADES optional label for grades#'
+#' @param LABS_GRADES optional label for grades
+#' @param LABS_COV optional labels for covariates in the competing risk model
+#' @param YB Maximum number of years before graduation
 #'
 #' @export
-parVec2List <- function(THETA, N_GRADES, N_EXAMS, LABS_EXAMS=NULL, LABS_GRADES=NULL){
+parVec2List <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB=5, LABS_EXAMS=NULL, LABS_GRADES=NULL, LABS_COV=NULL){
   dim_irt <- N_EXAMS * (N_GRADES+3)
 
+  if(is.null(LABS_COV)) LABS_COV <- paste0("X", 1:N_COV)
   out <- list()
 
   # IRT parameters
@@ -77,6 +81,14 @@ parVec2List <- function(THETA, N_GRADES, N_EXAMS, LABS_EXAMS=NULL, LABS_GRADES=N
   # Latent parameters
   L <- matrix(c(1,THETA[dim_irt+1], 0, THETA[dim_irt+2]),2,2)
   out[["lat_var"]] <- L %*% t(L)
+
+  # Competing Risk parameters
+  parCR <- THETA[(dim_irt+3):length(THETA)]
+  out[["cr"]][["beta"]] <- matrix(parCR[-1], ncol=2)
+  rownames(out$cr$beta) <- c(paste0("year", 1:YB), LABS_COV, "ability", "speed")
+  colnames(out$cr$beta) <- c("dropout", "transfer")
+
+  out[["cr"]][["grad"]] <- parCR[[1]]
 
   return(out)
 }
@@ -91,8 +103,9 @@ parList2Vec <- function(LIST){
   theta_irt <- irtMat2Vec(LIST[["irt"]])
   L <- t(chol(LIST[["lat_var"]]))
   theta_lat <- c(L[2,1], L[2,2])
+  theta_cr <- c(LIST$cr$grad,as.numeric(LIST$cr$beta))
 
-  theta <- c(theta_irt, theta_lat)
+  theta <- c(theta_irt, theta_lat, theta_cr)
 
   return(theta)
 }
@@ -104,16 +117,19 @@ parList2Vec <- function(LIST){
 #' @param THETA Parameter vector.
 #' @param N_GRADES number of grades modeled.
 #' @param N_EXAMS number of exams.
+#' @param N_COV number of covariates in the competing risk model
 #' @param LABS_EXAMS optional label for exams
 #' @param LABS_GRADES optional label for grades
+#' @param LABS_COV optional labels for covariates in the competing risk model
+#' @param YB Maximum number of years before graduation
 #' @param TIDY TRUE to get tidy parameters table
 #'
 #' @importFrom tidyr pivot_longer tribble as_tibble
 #' @importFrom dplyr all_of bind_rows
 #' @export
-parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, LABS_EXAMS=NULL, LABS_GRADES=NULL, TIDY=FALSE){
+parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB, LABS_EXAMS=NULL, LABS_GRADES=NULL, LABS_COV=NULL, TIDY=FALSE){
   dim_irt <- N_EXAMS * (N_GRADES+3)
-
+  if(is.null(LABS_COV)) LABS_COV <- paste0("X", 1:N_COV)
   out <- list()
 
   # IRT parameters
@@ -140,11 +156,17 @@ parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, LABS_EXAMS=NULL, LABS_GRADES=
         tribble(
           ~group, ~type, ~par,
           "latent", "speed_sd", speed_sd,
-          "latent", "correlation", lat_cor
+          "latent", "correlation", lat_cor,
+          "graduation", "intercept", THETA[(dim_irt+3)]
         )
+      ) |>
+      bind_rows(
+        tibble(group=c(rep("dropout", YB+N_COV+2), rep("transfer", YB+N_COV+2)),
+               type =c(paste0("year",1:YB), LABS_COV, "ability", "speed", paste0("year",1:YB), LABS_COV, "ability", "speed"),
+               par=THETA[-(1:(dim_irt+3))])
       )
   }else{
-    out <- c(irtVec, latVec)
+    out <- c(irtVec, latVec, THETA[-(1:(dim_irt+2))])
   }
 
   return(out)

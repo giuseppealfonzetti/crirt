@@ -8,8 +8,11 @@ parVec2Repar(
   THETA,
   N_GRADES,
   N_EXAMS,
+  N_COV,
+  YB,
   LABS_EXAMS = NULL,
   LABS_GRADES = NULL,
+  LABS_COV = NULL,
   TIDY = FALSE
 )
 }
@@ -20,9 +23,15 @@ parVec2Repar(
 
 \item{N_EXAMS}{number of exams.}
 
+\item{N_COV}{number of covariates in the competing risk model}
+
+\item{YB}{Maximum number of years before graduation}
+
 \item{LABS_EXAMS}{optional label for exams}
 
 \item{LABS_GRADES}{optional label for grades}
+
+\item{LABS_COV}{optional labels for covariates in the competing risk model}
 
 \item{TIDY}{TRUE to get tidy parameters table}
 }

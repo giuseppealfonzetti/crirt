@@ -1,5 +1,6 @@
 n_grades <- 4L
 n_exams <- 3L
+
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
 set.seed(123)
@@ -54,3 +55,4 @@ for (exam in 1:nrow(mat)) {
 test_that("irtMat2Vec()", {
   expect_equal(theta_irt, irtMat2Vec(mat))
 })
+

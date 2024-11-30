@@ -1,16 +1,22 @@
 n <- 10
-set.seed(2)
+set.seed(123)
 
 ### gen params ####
 n_grades <- 4L
 n_exams <- 10L
+yb <- 5
+n_cov <- 1
+dim_cr <- 2*(yb+n_cov+2)+1
+dim_irt_lat <- n_exams*(n_grades+3)+2
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-theta <- rnorm(n_exams*(n_grades+3)+2)
+theta <- c(rnorm(dim_irt_lat), rep(NA, dim_cr))
 parList <- parVec2List(
   THETA = theta,
   N_GRADES = n_grades,
   N_EXAMS = n_exams,
+  N_COV = n_cov,
+  YB=yb,
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
 irtMat <- parList$irt
@@ -63,6 +69,8 @@ timeMat[timeMat>max_day] <- NA
 obsMat <- matrix(1, n, n_exams)
 obsMat[is.na(timeMat)] <- 0
 
+
+##### TESTS ####
 RFUN <- function(x, ROTATE){
   GRTCM_GH(
     THETA = x,
@@ -80,7 +88,7 @@ RFUN <- function(x, ROTATE){
   )$ll
 }
 
-RFUN(theta, TRUE)
+RFUN(theta[1:dim_irt_lat], TRUE)
 
 #### check gradient
 test_that("Check gradient derivative without node rotation", {
@@ -102,8 +110,8 @@ test_that("Check gradient derivative without node rotation", {
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta, ROTATE = FALSE),
-    fit$gr
+    numDeriv::grad(RFUN, x = theta[1:dim_irt_lat], ROTATE = FALSE),
+    fit$gr[1:dim_irt_lat]
   )
 })
 
@@ -125,7 +133,7 @@ test_that("Check gradient derivative with node rotation", {
   )
 
   expect_equal(
-    numDeriv::grad(RFUN, x = theta, ROTATE = TRUE),
-    fit$gr
+    numDeriv::grad(RFUN, x = theta[1:dim_irt_lat], ROTATE = TRUE),
+    fit$gr[1:dim_irt_lat]
   )
 })

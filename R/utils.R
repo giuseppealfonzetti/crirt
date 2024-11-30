@@ -3,6 +3,7 @@
 #' @description Helper function to extract information needed from the dataset
 #'
 #' @param DATA_IRT Data for the IRT model
+#' @param DATA_CR Data for the CR model
 #' @param GRADE_COL Label of the column where to find the grades
 #' @param EXAM_COL Label of the column where to find exams ids
 #' @param STUDID_COL Label of the column where to find students ids.
@@ -14,11 +15,12 @@
 #' @importFrom dplyr select arrange mutate group_by starts_with ungroup across everything
 #' @importFrom tidyr pivot_wider nest unnest replace_na
 dataRestruct <- function(
-    DATA_IRT,
-    GRADE_COL = "xcat",
-    EXAM_COL = "itemID",
-    STUDID_COL = "subjectID",
-    TIME_COL = "time",
+    DATA_IRT    = NULL,
+    DATA_CR     = NULL,
+    GRADE_COL   = "xcat",
+    EXAM_COL    = "itemID",
+    STUDID_COL  = "subjectID",
+    TIME_COL    = "time",
     MAXTIME_COL = "maxTime"
     ){
   grades_labs <- sort(unique(DATA_IRT[,GRADE_COL]), decreasing = FALSE)
@@ -62,6 +64,60 @@ dataRestruct <- function(
   colnames(todoMat) <- colnames(gradesMat) <- colnames(timeMat) <- exams_labs
   rownames(todoMat) <- rownames(gradesMat) <- rownames(timeMat) <- ids
 
+
+
+  cr_main <- data.frame(subject_id=DATA_CR$subjectID, DATA_CR$X, LFLAG=DATA_CR$L, outcome=DATA_CR$outcome) |>
+    mutate(subject_id=factor(subject_id, levels=ids, ordered = TRUE)) |>
+    arrange((subject_id)) |>
+    nest(year=starts_with("factor")) |>
+    mutate(year=map(year,~{
+      mat <- as.matrix(.x)
+      as.numeric(mat%*%matrix(1:ncol(mat), ncol(mat), 1))
+    }),
+    outcome=outcome-1) |>
+    unnest(year)
+
+  crtib <- cr_main |>
+    select(-.data$LFLAG) |>
+    group_by(.data$subject_id) |>
+    filter(.data$outcome==max(outcome)) |>
+    filter(.data$year==max(year)) |>
+    rename(last_year=year) |>
+    left_join(
+      cr_main |>
+        select(.data$subject_id, .data$year, .data$LFLAG) |>
+        group_by(.data$subject_id) |>
+        filter(.data$LFLAG==max(LFLAG)) |>
+        filter(.data$year==min(year)) |>
+        mutate(yle=if_else(LFLAG==0, NA, year)) |>
+        select(.data$subject_id, .data$yle),
+      by="subject_id"
+    ) |>
+    left_join(
+      cr_main |>
+        select(-.data$LFLAG) |>
+        group_by(subject_id) |>
+        filter(year==min(year)) |>
+        rename(first_year=year) |>
+        select(.data$subject_id, .data$first_year),
+      by="subject_id"
+    )
+
+
+  yb=max(crtib$yle, na.rm=TRUE)
+
+  outcome_vec <- crtib$outcome
+  fy_vec <- crtib$first_year
+  ly_vec <- crtib$last_year
+  yle_vec <- if_else(is.na(crtib$yle), 100, crtib$yle)
+  X <- as.matrix(crtib |> ungroup() |> select(-c(subject_id, outcome, last_year, first_year, yle)))
+  n_cov=ncol(X)
+  fulldata <- nestedIRT |> left_join(crtib, by="subject_id")
+
+  dim_irt <- n_exams * (n_grades+3)
+  dim_cr <- (yb + n_cov + 2)*2+1
+
+
   out <- list(
     "obs_ids" = ids,
     "exams_tab" = exam_grades_tab,
@@ -70,10 +126,20 @@ dataRestruct <- function(
     "n_observations" = n,
     "n_exams" = n_exams,
     "n_grades" = n_grades,
+    "n_cov" = n_cov,
+    "yb" = yb,
+    "cr_ext_cov" = n_cov,
     "todoMat" = todoMat,
     "gradesMat" = gradesMat,
     "timeMat" = timeMat,
-    "nested_IRT" = nestedIRT
+    "dim_irt"= dim_irt,
+    "dim_cr" = dim_cr,
+    "outcome" = outcome_vec,
+    "first_year" = fy_vec,
+    "last_year" = ly_vec,
+    "yle" = yle_vec,
+    "X" = X,
+    "fulldata" = fulldata
   )
 
   return(out)

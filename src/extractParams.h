@@ -86,5 +86,17 @@ Eigen::VectorXd extract_params_irt(
 }
 
 
-
+namespace params
+{
+ Eigen::MatrixXd get_L(
+     const Eigen::Ref<const Eigen::VectorXd> THETA,
+     const int N_EXAMS,
+     const int N_GRADES
+ ){
+   const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+   Eigen::MatrixXd L(2,2);
+   L << 1, THETA(dim_irt), 0, THETA(dim_irt+1);
+   return(L);
+ }
+}
 #endif

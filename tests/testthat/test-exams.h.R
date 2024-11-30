@@ -1,13 +1,19 @@
 ### gen params ####
 n_grades <- 4L
 n_exams <- 5L
+n_cov <- 1L
+yb <- 3
+dim_cr <- 2*(yb+n_cov+2)+1
+dim_irt_lat <- n_exams*(n_grades+3)+2
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-theta <- rnorm(n_exams*(n_grades+3)+2)
+theta <- c(rnorm(dim_irt_lat),rep(NA, dim_cr))
 parList <- parVec2List(
   THETA = theta,
   N_GRADES = n_grades,
   N_EXAMS = n_exams,
+  N_COV = n_cov,
+  YB = yb,
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
 mat <- parList$irt
@@ -16,24 +22,29 @@ mat <- parList$irt
 
 
 #### test exam-specific likelihood ####
-FUNEXAM <- function(x, OBSFLAG, ROTATE=FALSE){
+FUNEXAM <- function(x, OBSFLAG, ROTATE=FALSE, OUT="ll"){
   sp <- speed
   if(ROTATE){
     sp <- x[n_exams*(n_grades+3)+1]*ability + x[n_exams*(n_grades+3)+2]*speed
   }
-  examLik(
+  obj <- cpp_examLik(
     EXAM = exam-1,
     GRADE = grade,
     DAY = day,
     MAX_DAY = day,
     OBSFLAG = OBSFLAG,
-    THETA_IRT = x,
+    THETA = x,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
     ABILITY = ability,
     SPEED = sp,
-    LOGFLAG = TRUE
+    ROTATED=ROTATE
   )
+  if(OUT=="ll"){
+    return(obj$ll)
+  }else{
+    return(obj$grll)
+  }
 }
 
 
@@ -44,46 +55,28 @@ for (ability in rnorm(3,0,1)) {
     for (day in runif(3, 100, 1000)) {
       for (exam in 1:n_exams) {
         for (grade in 1:n_grades) {
-          pG <- pGrade(GRADE = grade, EXAM = exam-1, THETA_IRT = theta, N_GRADES = n_grades, N_EXAMS = n_exams, ABILITY = ability)
+          pG <- cpp_pGrade(GRADE = grade, EXAM = exam-1, THETA = theta, N_GRADES = n_grades, N_EXAMS = n_exams, ABILITY = ability, LOGFLAG = FALSE)$prob
           pT <- dlnorm(day,
                        mat[exam,n_grades+2]-speed,
                        1/mat[exam,n_grades+3])
           Rval <- pT*pG
-          val <- examLik(
-            EXAM = exam-1,
-            GRADE = grade,
-            DAY = day,
-            MAX_DAY = day,
+          val <- FUNEXAM(
             OBSFLAG = T,
-            THETA_IRT = theta,
-            N_GRADES = n_grades,
-            N_EXAMS = n_exams,
-            ABILITY = ability,
-            SPEED = speed,
-            LOGFLAG = TRUE
+            x = theta
           )
           test_that("examLik() log output observed exam", {
             skip_if(!is.finite(log(Rval)))
             expect_equal(val, log(Rval))
           })
 
-          pG <- pGreaterGrades(GRADE = 1, EXAM = exam-1, THETA_IRT = theta, N_GRADES = n_grades, N_EXAMS = n_exams, ABILITY = ability)
+          pG <- cpp_pGreaterGrades(GRADE = 1, EXAM = exam-1, THETA = theta, N_GRADES = n_grades, N_EXAMS = n_exams, ABILITY = ability, LOGFLAG = FALSE)$prob
           pT <- plnorm(day,
                        mat[exam, n_grades+2]-speed,
                        1/mat[exam, n_grades+3])
           Rval <- 1-pT*pG
-          val <- examLik(
-            EXAM = exam-1,
-            GRADE = grade,
-            DAY = day,
-            MAX_DAY = day,
+          val <- FUNEXAM(
             OBSFLAG = F,
-            THETA_IRT = theta,
-            N_GRADES = n_grades,
-            N_EXAMS = n_exams,
-            ABILITY = ability,
-            SPEED = speed,
-            LOGFLAG = TRUE
+            x = theta
           )
           test_that("examLik() log output not observed exam", {
             skip_if(!is.finite(log(Rval)))
@@ -106,13 +99,18 @@ set.seed(123)
 #### gen params ####
 n_grades <- 4L
 n_exams <- 10L
+yb <- 3
+dim_cr <- 2*(yb+n_cov+2)+1
+dim_irt_lat <- n_exams*(n_grades+3)+2
 labs_exams <- paste0('ECO0',1:n_exams)
 labs_grades <- c('[18,22)', '[22,25)', '[25,28)', '[29,30L]')
-theta <- rnorm(n_exams*(n_grades+3)+2)
+theta <- c(rnorm(dim_irt_lat), rep(NA, dim_cr))
 parList <- parVec2List(
   THETA = theta,
   N_GRADES = n_grades,
   N_EXAMS = n_exams,
+  N_COV = n_cov,
+  YB = yb,
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
 irtMat <- parList$irt
@@ -122,6 +120,8 @@ parListIdx <- parVec2List(
   THETA = theta_idx,
   N_GRADES = n_grades,
   N_EXAMS = n_exams,
+  N_COV = n_cov,
+  YB = yb,
   LABS_EXAMS = labs_exams,
   LABS_GRADES = labs_grades)
 parListIdx$irt
@@ -174,58 +174,43 @@ obsMat <- matrix(1, n, n_exams)
 obsMat[is.na(timeMat)] <- 0
 
 #### checks ####
-RFUN <- function(x, SPEED, ABILITY, ROTATE,  ...){
+RFUN <- function(x, SPEED, ABILITY, ROTATE, OUT="ll",  ...){
   internal_speed <- SPEED
   if(ROTATE){
     internal_speed <- x[n_exams*(n_grades+3)+1]*ABILITY + x[n_exams*(n_grades+3)+2]*SPEED
   }
 
-  examLik(
-    THETA_IRT = x,
+  obj <- cpp_examLik(
+    THETA = x,
     N_GRADES = n_grades,
     N_EXAMS = n_exams,
     ABILITY = ABILITY,
     SPEED = internal_speed,
-    LOGFLAG = TRUE,
+    ROTATED=ROTATE,
     ...
   )
+  if(OUT=="ll"){
+    return(obj$ll)
+  }else{
+    return(obj$grll[1:dim_irt_lat])
+  }
 }
-# numDeriv::grad(func = RFUN, x = theta, ABILITY = 1, SPEED = 1, ROTATE = FALSE, EXAM = 0, GRADE = 1, DAY = 100, MAX_DAY = 100, OBSFLAG = TRUE)
-#
-# grcpp <- grl_examLik(
-#   EXAM = exam-1,
-#   GRADE = grade,
-#   DAY = day,
-#   MAX_DAY = day,
-#   OBSFLAG = F,
-#   THETA_IRT = theta,
-#   N_GRADES = n_grades,
-#   N_EXAMS = n_exams,
-#   ABILITY = ability,
-#   SPEED = theta[n_exams*(n_grades+3)+1]*ability + theta[n_exams*(n_grades+3)+2]*speed,
-#   ROTATED = TRUE
-# )
-
-
 
 for (i in 1:n) {
   for (exam in 1:n_exams) {
     test_that(paste0("exam density not rotated lat, i:",i, ", e:",exam), {
       skip_if_not_installed("numDeriv")
 
-      numGrad <- numDeriv::grad(func = RFUN, x = theta, MAX_DAY = max_day,
+      numGrad <- numDeriv::grad(func = RFUN, x = theta[1:dim_irt_lat], MAX_DAY = max_day,
                                 EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
                                 SPEED = latMat[i,2], ABILITY = latMat[i,1], ROTATE = FALSE,
                                 OBSFLAG = obsMat[i, exam])
-      grcpp <- grl_examLik(
+      grcpp <- RFUN(
+        x = theta, MAX_DAY = max_day,
         EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
-        MAX_DAY = max_day,
-        SPEED = latMat[i,2], ABILITY = latMat[i,1],
-        ROTATED = FALSE,
-        THETA_IRT = theta,
+        SPEED = latMat[i,2], ABILITY = latMat[i,1], ROTATE = FALSE,
         OBSFLAG = obsMat[i, exam],
-        N_GRADES = n_grades,
-        N_EXAMS = n_exams
+        OUT="grll"
       )
       expect_equal(grcpp, numGrad,  tolerance = 1e-5)
     })
@@ -233,20 +218,16 @@ for (i in 1:n) {
     test_that(paste0("exam density rotated lat, i:",i, ", e:",exam), {
       skip_if_not_installed("numDeriv")
 
-      numGrad <- numDeriv::grad(func = RFUN, x = theta, MAX_DAY = max_day,
+      numGrad <- numDeriv::grad(func = RFUN, x = theta[1:dim_irt_lat], MAX_DAY = max_day,
                                 EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
                                 SPEED = latMat[i,2], ABILITY = latMat[i,1], ROTATE = TRUE,
                                 OBSFLAG = obsMat[i, exam])
-      grcpp <- grl_examLik(
+      grcpp <- RFUN(
+        x = theta, MAX_DAY = max_day,
         EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
-        MAX_DAY = max_day,
-        SPEED = theta[n_exams*(n_grades+3)+1]*latMat[i,1] + theta[n_exams*(n_grades+3)+2]*latMat[i,2],
-        ABILITY = latMat[i,1],
-        ROTATED = TRUE,
-        THETA_IRT = theta,
+        SPEED = latMat[i,2], ABILITY = latMat[i,1], ROTATE = TRUE,
         OBSFLAG = obsMat[i, exam],
-        N_GRADES = n_grades,
-        N_EXAMS = n_exams
+        OUT="grll"
       )
       expect_equal(grcpp, numGrad,  tolerance = 1e-5)
     })
@@ -256,23 +237,3 @@ for (i in 1:n) {
 
 }
 
-# ROTFLAG <- TRUE
-# i <- 1; exam <- 3
-# numGrad <- numDeriv::grad(func = RFUN, x = theta, MAX_DAY = max_day,
-#                           EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
-#                           SPEED = latMat[i,2], ABILITY = latMat[i,1], ROTATE = ROTFLAG,
-#                           OBSFLAG = obsMat[i, exam])
-# grcpp <- grl_examLik(
-#   EXAM = exam-1, DAY = timeMat[i, exam], GRADE = gradesMat[i, exam],
-#   MAX_DAY = max_day,
-#   SPEED = if_else(ROTFLAG,
-#     theta[n_exams*(n_grades+3)+1]*latMat[i,1] + theta[n_exams*(n_grades+3)+2]*latMat[i,2],
-#     latMat[i,2]),
-#   ABILITY = latMat[i,1],
-#   ROTATED = ROTFLAG,
-#   THETA_IRT = theta,
-#   OBSFLAG = obsMat[i, exam],
-#   N_GRADES = n_grades,
-#   N_EXAMS = n_exams
-# )
-# tibble("num" = numGrad, "cpp" = grcpp) |> print(n=100)
