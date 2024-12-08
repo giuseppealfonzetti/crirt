@@ -123,8 +123,13 @@ public:
   //gradient of conditional log-likelihood
   Eigen::VectorXd grll(const double ABILITY, const double SPEED);
 
+
   // complete log-likelihood
   double cll(const double ABILITY, const double SPEED);
+
+  //gradient of complete log-likelihood
+  Eigen::VectorXd grcll(const double ABILITY, const double SPEED);
+
 
 };
 
@@ -152,7 +157,7 @@ double GRTC_MOD::ll(const double ABILITY, const double SPEED) {
 }
 double GRTC_MOD::cll(const double ABILITY, const double SPEED) {
 
-  LAT_DISTR lat(_theta.segment(_dim_irt,2));
+  LAT lat(_theta, _dim_irt, _rotated);
   double out = lat.ll(ABILITY, SPEED);
 
   for(unsigned int exam = 0; exam < _n_exams; exam++){
@@ -198,7 +203,33 @@ Eigen::VectorXd GRTC_MOD::grll(const double ABILITY, const double SPEED){
   return gr;
 }
 
+Eigen::VectorXd GRTC_MOD::grcll(const double ABILITY, const double SPEED){
 
-// joint COMPETING RISK GRADED RESPONSE TIME CENSORED MODEL
+  Eigen::VectorXd gr = Eigen::VectorXd::Zero(_theta.size());
+  Eigen::VectorXd gr_irt = Eigen::VectorXd::Zero(_dim_irt+2);
+
+  LAT lat(_theta, _dim_irt, _rotated);
+
+  for(unsigned int exam = 0; exam < _n_exams; exam++){
+
+    if(_exams_set[exam]){
+      gr_irt += exams::grad::grl_examLik(exam,
+                                         _exams_grades(exam),
+                                         _exams_days(exam),
+                                         _max_day,
+                                         _exams_obsflag(exam),
+                                         _theta,
+                                         _n_grades,
+                                         _n_exams,
+                                         ABILITY, SPEED,
+                                         _rotated);
+    }
+  }
+
+  gr.segment(0, _dim_irt+2) = gr_irt;
+  gr += lat.grll(ABILITY, SPEED);
+  return gr;
+}
+
 
 #endif

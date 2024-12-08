@@ -245,3 +245,222 @@ Rcpp::List CCR(
 
   return output;
 }
+
+
+//' @export
+// [[Rcpp::export]]
+Rcpp::List CRGRTCM_EM(
+    Eigen::VectorXd THETA_START,
+    Eigen::MatrixXd EXAMS_GRADES,
+    Eigen::MatrixXd EXAMS_DAYS,
+    Eigen::MatrixXd EXAMS_SET,
+    Eigen::MatrixXd EXAMS_OBSFLAG,
+    Eigen::VectorXd MAX_DAY,
+    Eigen::VectorXd OUTCOME,
+    Eigen::MatrixXd EXT_COVARIATES,
+    Eigen::VectorXd YEAR_FIRST,
+    Eigen::VectorXd YEAR_LAST,
+    Eigen::VectorXd YEAR_LAST_EXAM,
+    Eigen::MatrixXd GRID,
+    Eigen::VectorXd WEIGHTS,
+    const unsigned int YB,
+    const unsigned int N_GRADES,
+    const unsigned int N_EXAMS,
+    const unsigned int M_MAX_ITER,
+    const unsigned int MAX_ITER,
+    const double TOL,
+    const std::string MOD
+){
+  double enjll = 0;
+  Eigen::VectorXd theta = THETA_START;
+
+  const unsigned int n = EXAMS_GRADES.rows();
+  const unsigned int nq = GRID.rows();
+  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+  const unsigned int dim_cr = 2*(YB+EXT_COVARIATES.cols()+2)+1;
+  std::vector<double> path_enjll; path_enjll.push_back(std::numeric_limits<double>::infinity());
+  std::vector<Eigen::VectorXd> path_theta; path_theta.push_back(theta);
+
+  unsigned int last_iter = MAX_ITER;
+  unsigned int convergence = 0;
+  for(unsigned int iter=0; iter < MAX_ITER; iter++){
+    Rcpp::checkUserInterrupt();
+    Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
+    Eigen::MatrixXd grid = GRID * L.transpose();
+
+    Rcpp::Rcout << "Iter " << iter << " | E-STEP...";
+    Eigen::MatrixXd Ew = EM::Estep(theta,
+                                   EXAMS_GRADES,
+                                   EXAMS_DAYS,
+                                   EXAMS_SET,
+                                   EXAMS_OBSFLAG,
+                                   MAX_DAY,
+                                   OUTCOME,
+                                   EXT_COVARIATES,
+                                   YEAR_FIRST,
+                                   YEAR_LAST,
+                                   YEAR_LAST_EXAM,
+                                   grid,
+                                   WEIGHTS,
+                                   YB,
+                                   N_GRADES,
+                                   N_EXAMS,
+                                   MOD);
+
+    Rcpp::Rcout << " done! | M_STEP...";
+    EM::EAPLOGJ eclass(
+        EXAMS_GRADES,
+        EXAMS_DAYS,
+        EXAMS_SET,
+        EXAMS_OBSFLAG,
+        MAX_DAY,
+        OUTCOME,
+        EXT_COVARIATES,
+        YEAR_FIRST,
+        YEAR_LAST,
+        YEAR_LAST_EXAM,
+        YB,
+        N_GRADES,
+        N_EXAMS,
+        MOD
+    );
+
+    eclass.update_quadrature(grid, Ew);
+
+    int status = optim_lbfgs(eclass, theta, enjll, M_MAX_ITER);
+    double tol_check = (path_enjll.back() - enjll) / path_enjll.back();
+
+    Rcpp::Rcout << " status="<<status<<  " | obj=" << enjll << ", obj_pdiff:" << tol_check  <<"|\n";
+
+    path_theta.push_back(theta);
+    path_enjll.push_back(enjll);
+
+    if(tol_check<TOL){
+      last_iter = iter;
+      convergence = 1;
+      Rcpp::Rcout << "Converged\n";
+      break;
+    }
+  }
+
+  Rcpp::List output =
+    Rcpp::List::create(
+      Rcpp::Named("path_theta") = path_theta,
+      Rcpp::Named("path_enjll") = path_enjll,
+      Rcpp::Named("last_iter") = last_iter,
+      Rcpp::Named("convergence") = convergence,
+      Rcpp::Named("par") = theta
+    );
+
+  return output;
+}
+
+
+//' @export
+// [[Rcpp::export]]
+Rcpp::List cpp_EM(
+    Eigen::VectorXd THETA_START,
+    Eigen::MatrixXd EXAMS_GRADES,
+    Eigen::MatrixXd EXAMS_DAYS,
+    Eigen::MatrixXd EXAMS_SET,
+    Eigen::MatrixXd EXAMS_OBSFLAG,
+    Eigen::VectorXd MAX_DAY,
+    Eigen::VectorXd OUTCOME,
+    Eigen::MatrixXd EXT_COVARIATES,
+    Eigen::VectorXd YEAR_FIRST,
+    Eigen::VectorXd YEAR_LAST,
+    Eigen::VectorXd YEAR_LAST_EXAM,
+    Eigen::MatrixXd GRID,
+    Eigen::VectorXd WEIGHTS,
+    const unsigned int YB,
+    const unsigned int N_GRADES,
+    const unsigned int N_EXAMS,
+    const unsigned int M_MAX_ITER,
+    const unsigned int MAX_ITER,
+    const double TOL,
+    const std::string MOD,
+    const bool VERBOSE
+){
+  double enjll = 0;
+  Eigen::VectorXd theta = THETA_START;
+
+  const unsigned int n = EXAMS_GRADES.rows();
+  const unsigned int nq = GRID.rows();
+  const unsigned int dim_irt = N_EXAMS*(N_GRADES+3);
+  const unsigned int dim_cr = 2*(YB+EXT_COVARIATES.cols()+2)+1;
+  std::vector<double> path_enjll; path_enjll.push_back(std::numeric_limits<double>::infinity());
+  std::vector<Eigen::VectorXd> path_theta; path_theta.push_back(theta);
+
+  unsigned int last_iter = MAX_ITER;
+  unsigned int convergence = 0;
+  for(unsigned int iter=0; iter < MAX_ITER; iter++){
+    Rcpp::checkUserInterrupt();
+    Eigen::MatrixXd L{{1,0},{theta(dim_irt), theta(dim_irt+1)}};
+    Eigen::MatrixXd grid = GRID * L.transpose();
+
+    if(VERBOSE)Rcpp::Rcout << "Iter " << iter << " | E-STEP...";
+    Eigen::MatrixXd Ew = EM::Estep(theta,
+                                   EXAMS_GRADES,
+                                   EXAMS_DAYS,
+                                   EXAMS_SET,
+                                   EXAMS_OBSFLAG,
+                                   MAX_DAY,
+                                   OUTCOME,
+                                   EXT_COVARIATES,
+                                   YEAR_FIRST,
+                                   YEAR_LAST,
+                                   YEAR_LAST_EXAM,
+                                   grid,
+                                   WEIGHTS,
+                                   YB,
+                                   N_GRADES,
+                                   N_EXAMS,
+                                   MOD);
+
+    if(VERBOSE)Rcpp::Rcout << " done! | M_STEP...";
+    EM::EAPLOGJ eclass(
+        EXAMS_GRADES,
+        EXAMS_DAYS,
+        EXAMS_SET,
+        EXAMS_OBSFLAG,
+        MAX_DAY,
+        OUTCOME,
+        EXT_COVARIATES,
+        YEAR_FIRST,
+        YEAR_LAST,
+        YEAR_LAST_EXAM,
+        YB,
+        N_GRADES,
+        N_EXAMS,
+        MOD
+    );
+
+    eclass.update_quadrature(grid, Ew);
+
+    int status = optim_lbfgs(eclass, theta, enjll, M_MAX_ITER);
+    double tol_check = (path_enjll.back() - enjll) / path_enjll.back();
+
+    if(VERBOSE)Rcpp::Rcout << " status="<<status<<  " | obj=" << enjll << ", obj_pdiff:" << tol_check  <<"|\n";
+
+    path_theta.push_back(theta);
+    path_enjll.push_back(enjll);
+
+    if(tol_check<TOL){
+      last_iter = iter;
+      convergence = 1;
+      if(VERBOSE)Rcpp::Rcout << "Converged\n";
+      break;
+    }
+  }
+
+  Rcpp::List output =
+    Rcpp::List::create(
+      Rcpp::Named("path_theta") = path_theta,
+      Rcpp::Named("path_enjll") = path_enjll,
+      Rcpp::Named("last_iter") = last_iter,
+      Rcpp::Named("convergence") = convergence,
+      Rcpp::Named("par") = theta
+    );
+
+  return output;
+}

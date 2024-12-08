@@ -24,13 +24,7 @@ fit_CRGRTCM <- function(DATA,
                         GRID, WEIGHTS, THETA_START = NULL,
                         ...){
 
-  # dataStruct <- dataRestruct(DATA_IRT   = IRTDATA,
-  #                            DATA_CR    = CRDATA,
-  #                            GRADE_COL  = GRADE_COL,
-  #                            EXAM_COL   = EXAM_COL,
-  #                            STUDID_COL = STUDID_COL,
-  #                            TIME_COL   = TIME_COL,
-  #                            MAXTIME_COL= MAXTIME_COL)
+
 
   if(is.null(THETA_START)){
     startIRTMat <- matrix(NA, DATA$n_exams, DATA$n_grades+3)
@@ -173,7 +167,7 @@ compute_se <- function(FIT, TIDY = TRUE){
 
   if(FIT$mod=="ccr"){
     FIT$fit$par <- c(rep(NA, dim_irt+2), FIT$fit$par)
-  }else if(FIT$mod=="grtcm"){
+  }else if(FIT$mod=="grtc"){
     FIT$fit$par <- c(FIT$fit$par, rep(NA, dim_cr))
   }
 

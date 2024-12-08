@@ -20,13 +20,15 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 LinkingTo: 
     Rcpp,
-    RcppEigen
+    RcppEigen,
+    RcppNumerical
 Imports: 
     rlang,
     Rcpp,
     RcppEigen,
     dplyr,
     tidyr,
+    purrr,
     ucminf,
     optimx
 URL: https://github.com/giuseppealfonzetti/crirt

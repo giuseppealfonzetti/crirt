@@ -124,7 +124,7 @@ parList2Vec <- function(LIST){
 #' @param YB Maximum number of years before graduation
 #' @param TIDY TRUE to get tidy parameters table
 #'
-#' @importFrom tidyr pivot_longer tribble as_tibble
+#' @importFrom tidyr pivot_longer tribble as_tibble tibble
 #' @importFrom dplyr all_of bind_rows
 #' @export
 parVec2Repar <- function(THETA, N_GRADES, N_EXAMS, N_COV, YB, LABS_EXAMS=NULL, LABS_GRADES=NULL, LABS_COV=NULL, TIDY=FALSE){
