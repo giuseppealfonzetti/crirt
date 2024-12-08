@@ -41,8 +41,8 @@ fit_EM <- function(DATA,
     startIRTMat[,DATA$n_grades+2] <- apply(DATA$timeMat, MARGIN = 2, FUN = function(x) mean(log(x), na.rm = TRUE))
     startIRTMat[,DATA$n_grades+3] <- apply(DATA$timeMat, MARGIN = 2, FUN = function(x) 1/sd(x, na.rm = TRUE))
     startLatMat <- diag(1, 2, 2)
-    startBeta <- matrix(-1, DATA$yb+DATA$cr_ext_cov+2, 2)
-    startGradInt <- 3
+    startBeta <- matrix(0, DATA$yb+DATA$cr_ext_cov+2, 2)
+    startGradInt <- 5
     start_par <- parList2Vec(list("irt"=startIRTMat, 'lat_var'=startLatMat, "cr"=list("beta"=startBeta, "grad"=startGradInt)))
   }else{
     start_par <- THETA_START
