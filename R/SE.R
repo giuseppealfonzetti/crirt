@@ -13,6 +13,7 @@ compute_stderr <- function(FIT, NUMDER=FALSE, TIDY = TRUE, GRID=NULL, WEIGHTS=NU
     stop("Model not available. Provide fit object for `full` , `grtc` or `ccr` models.")
   }
 
+  out <- list()
   internal_invH <- FIT$fit$invhessian
   internal_grid <- GRID
   internal_weights <- WEIGHTS
@@ -68,14 +69,19 @@ compute_stderr <- function(FIT, NUMDER=FALSE, TIDY = TRUE, GRID=NULL, WEIGHTS=NU
           ROTGRID = TRUE
         )$gr
       }
+
       numHess <- numDeriv::jacobian(func = NGR, x=FIT$fit$par)
-      internal_invH <- solve(numHess)
+      out[["numHess"]] <- numHess
+      internal_invH <- MASS::ginv(numHess)
+
     }else{
       stop("Numerical derivatives not implemented yet")
     }
   }
 
 
+
+  out[["invHess"]] <- internal_invH
 
     if(FIT$mod=="ccr"){
       reparJacob <- reparJacob[-c(1:(dim_irt+2)), -c(1:(dim_irt+2))]
@@ -90,7 +96,7 @@ compute_stderr <- function(FIT, NUMDER=FALSE, TIDY = TRUE, GRID=NULL, WEIGHTS=NU
 
 
   if(TIDY){
-    out <- parVec2Repar(FIT$fit$par,YB=FIT$data$yb,
+    out[["se"]] <- parVec2Repar(FIT$fit$par,YB=FIT$data$yb,
                         N_COV=FIT$data$cr_ext_cov,
                         N_GRADES = FIT$data$n_grades, N_EXAMS = FIT$data$n_exams,
                         LABS_EXAMS = FIT$data$exams_labs,
@@ -103,7 +109,7 @@ compute_stderr <- function(FIT, NUMDER=FALSE, TIDY = TRUE, GRID=NULL, WEIGHTS=NU
         sig = !(.data$lb<0&.data$ub>0)
       )
   }else{
-    out <- seVec
+    out[["se"]] <- seVec
   }
 
   return(out)

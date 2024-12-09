@@ -37,7 +37,7 @@ get_loglik <- function(FIT, GRID=NULL, WEIGHTS=NULL, INIT=FALSE){
       YEAR_LAST_EXAM=FIT$data$yle,
       GRID=GRID,
       WEIGHTS=WEIGHTS,
-      YB=dataStruct$yb,
+      YB=FIT$data$yb,
       N_GRADES=FIT$data$n_grades,
       N_EXAMS=FIT$data$n_exams,
       GRFLAG = FALSE,

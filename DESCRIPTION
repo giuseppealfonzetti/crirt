@@ -30,6 +30,7 @@ Imports:
     tidyr,
     purrr,
     ucminf,
-    optimx
+    optimx,
+    MASS
 URL: https://github.com/giuseppealfonzetti/crirt
 BugReports: https://github.com/giuseppealfonzetti/crirt/issues
