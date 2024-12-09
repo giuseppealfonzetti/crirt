@@ -62,3 +62,46 @@ get_loglik <- function(FIT, GRID=NULL, WEIGHTS=NULL, INIT=FALSE){
 
   return(out)
 }
+
+
+#' get fitted outcome probabilities given exam performances
+#'
+#' @param FIT Output from [fit_EM] or [fit_BFGS]
+#'
+#' @export
+get_fitted_outcome <- function(FIT){
+  expand_grid(subject_id=FIT$data$obs_ids, year = 1:FIT$data$yb) |>
+    mutate(probs=map2(subject_id, year,~{
+      ID <- which(FIT$data$obs_ids==.x)
+      if(.y < FIT$data$first_year[ID]){
+        pout <- rep(NA,4)
+        names(pout) <- c("enrollment", "graduation", "dropout", "transfer")
+        return(as_tibble(t(pout)))
+      }else{
+        pout <- sapply(0:3, function(outcome){
+          exp(CRGRTCM_GH(
+            THETA = FIT$fit$par,
+            EXAMS_GRADES = t(as.matrix(FIT$data$gradesMat[ID,])),
+            EXAMS_DAYS = t(as.matrix(FIT$data$timeMat[ID,])),
+            EXAMS_SET = t(as.matrix(FIT$data$todoMat[ID,])),
+            EXAMS_OBSFLAG = t(as.matrix(!is.na(FIT$data$timeMat[ID,]))),
+            MAX_DAY = as.vector(FIT$data$fulldata$max_time[ID]),
+            OUTCOME = as.vector(outcome),
+            EXT_COVARIATES = t(as.matrix(FIT$data$X[ID,])),
+            YEAR_FIRST = as.vector(FIT$data$first_year[ID]),
+            YEAR_LAST = as.vector(.y),
+            YEAR_LAST_EXAM = as.vector(FIT$data$yle[ID]),
+            GRID = FIT$grid,
+            WEIGHTS = FIT$weights,
+            YB = FIT$data$yb,
+            N_GRADES = FIT$data$n_grades,
+            N_EXAMS = FIT$data$n_exams,
+            GRFLAG = FALSE,
+            ROTGRID = TRUE
+          )$ll)
+        })
+        pout <- pout/sum(pout)
+        names(pout) <- c("enrollment", "graduation", "dropout", "transfer")
+        return(as_tibble(t(pout)))
+      }}))|> unnest("probs")
+  }
